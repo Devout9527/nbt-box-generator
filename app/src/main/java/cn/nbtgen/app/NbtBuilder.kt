@@ -40,7 +40,7 @@ fun makeMinecart(command: String, customName: String, ticking: Int,
     save["CustomName"] = TString(customName)
     save["Persistent"] = TByte(1)
     save["Pos"] = TList(emptyList())
-    save["Ticking"] = TShort(ticking)
+    save["Ticking"] = TByte(ticking)
     save["definitions"] = TList(defs)
     save["identifier"] = TString("minecraft:command_block_minecart")
     save["ignoreHurt"] = TByte(1)
@@ -52,7 +52,7 @@ fun makeMinecart(command: String, customName: String, ticking: Int,
     return comp(
         "ActorIdentifier" to TString("minecraft:command_block_minecart<>"),
         "SaveData" to TCompound(save),
-        "TicksLeftToStay" to TByte(0)
+        "TicksLeftToStay" to TInt(0)
     )
 }
 
