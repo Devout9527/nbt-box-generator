@@ -59,7 +59,9 @@ td input{width:100%}
   <textarea id="import_text" rows="3" placeholder="粘贴整段 SNBT 文本" style="font-family:'SF Mono',Consolas,monospace;font-size:12px"></textarea>
   <div class="toolbar" style="margin-top:6px">
     <button class="btn sec" id="do_import">解析并载入</button>
+    <button class="btn sec" id="pick_saved">从目录选择文件</button>
   </div>
+  <div id="saved_list" style="margin-top:6px"></div>
 </div>
 
 <!-- ============ 命令盒面板 ============ -->
@@ -470,6 +472,34 @@ async function parseImport(text){
   }catch(e){show(""+e.message,"err");}
 }
 do_import.onclick=()=>{const t=import_text.value.trim(); if(!t){show("请先粘贴 NBT","err");return;} parseImport(t);};
+
+// 从保存目录选择文件（仅 App 内可用）
+function renderSavedFiles(files){
+  const box=document.getElementById("saved_list");
+  if(!files.length){ box.innerHTML=""; show("保存目录里没有文件。先在下面生成并点「下载」保存一个吧。","err"); return; }
+  box.innerHTML = files.map(f=>{
+    const kb=(f.size/1024).toFixed(1);
+    return `<div style="display:flex;align-items:center;gap:8px;padding:7px 9px;border:1px solid var(--border);border-radius:6px;margin-bottom:6px;background:#15171d">
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(f.name)}</div>
+        <div style="font-size:11px;color:var(--mut)">${kb} KB</div>
+      </div>
+      <button class="btn sec" style="padding:5px 10px" data-name="${esc(f.name)}" onclick="loadSaved(this.getAttribute('data-name'))">载入</button>
+    </div>`;
+  }).join("");
+}
+function loadSaved(name){
+  try{
+    const t=AndroidBridge.readFile(name);
+    if(!t){ show("读取失败或空文件","err"); return; }
+    import_text.value=t; parseImport(t); show("已载入: "+name,"ok");
+  }catch(e){ show("载入失败: "+e,"err"); }
+}
+pick_saved.onclick=()=>{
+  if(!(window.AndroidBridge && AndroidBridge.listFiles)){ show("此功能仅在 App 内可用（浏览器里请手动粘贴）","err"); return; }
+  try{ renderSavedFiles(JSON.parse(AndroidBridge.listFiles())); }
+  catch(e){ show("读取目录失败: "+e,"err"); }
+};
 
 // 初始示例
 addCell("§r§f§aRunAway§e给标签蜂",[{mname:"§a放晴",command:"/weather clear"}]);

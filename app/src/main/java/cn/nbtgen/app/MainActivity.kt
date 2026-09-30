@@ -81,10 +81,7 @@ class MainActivity : Activity() {
         @JavascriptInterface
         fun saveFile(name: String, content: String): String {
             return try {
-                val safe = name.replace(Regex("[\\\\/:*?\"<>|]"), "_").ifEmpty { "nbt.txt" }
-                val dir = getExternalFilesDir("nbt") ?: filesDir
-                if (!dir.exists()) dir.mkdirs()
-                val f = File(dir, safe)
+                val f = File(saveDir(), safeName(name))
                 f.writeText(content, Charsets.UTF_8)
                 toast("已保存：${f.absolutePath}")
                 f.absolutePath
@@ -111,5 +108,45 @@ class MainActivity : Activity() {
 
         @JavascriptInterface
         fun getVersion(): String = BuildConfig.VERSION_NAME
+
+        /** 列出保存目录里的文件（按修改时间倒序），返回 JSON 数组 */
+        @JavascriptInterface
+        fun listFiles(): String {
+            val arr = org.json.JSONArray()
+            try {
+                val dir = saveDir()
+                dir.listFiles()?.filter { it.isFile }?.sortedByDescending { it.lastModified() }
+                    ?.forEach { f ->
+                        arr.put(org.json.JSONObject()
+                            .put("name", f.name)
+                            .put("size", f.length())
+                            .put("time", f.lastModified()))
+                    }
+            } catch (_: Exception) {}
+            return arr.toString()
+        }
+
+        /** 读取保存目录里某个文件的内容 */
+        @JavascriptInterface
+        fun readFile(name: String): String {
+            return try {
+                File(saveDir(), safeName(name)).readText(Charsets.UTF_8)
+            } catch (e: Exception) { "" }
+        }
+
+        /** 删除保存目录里的文件 */
+        @JavascriptInterface
+        fun deleteFile(name: String): Boolean {
+            return try { File(saveDir(), safeName(name)).delete() } catch (e: Exception) { false }
+        }
     }
+
+    private fun saveDir(): File {
+        val dir = getExternalFilesDir("nbt") ?: filesDir
+        if (!dir.exists()) dir.mkdirs()
+        return dir
+    }
+
+    private fun safeName(name: String): String =
+        name.replace(Regex("[\\\\/:*?\"<>|]"), "_").ifEmpty { "nbt.txt" }
 }
