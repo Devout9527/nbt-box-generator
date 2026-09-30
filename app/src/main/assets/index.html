@@ -119,20 +119,13 @@ td input{width:100%}
 <div id="panel_villager" class="panel" style="display:none">
 <div class="two">
 <div class="row"><label>桶类型</label>
-  <select id="v_bucket" onchange="onBucketChange()">
+  <select id="v_bucket">
     <option value="minecraft:cod_bucket">鳕鱼桶 (cod_bucket)</option>
     <option value="minecraft:salmon_bucket">鲑鱼桶 (salmon_bucket)</option>
     <option value="minecraft:tropical_fish_bucket">热带鱼桶 (tropical_fish_bucket)</option>
     <option value="minecraft:pufferfish_bucket">河豚桶 (pufferfish_bucket)</option>
     <option value="minecraft:axolotl_bucket">美西螈桶 (axolotl_bucket)</option>
-    <option value="minecraft:tadpole_bucket">蝌蚪桶 (tadpole_bucket)</option>
-    <option value="minecraft:water_bucket">水桶 (water_bucket)</option>
-    <option value="minecraft:lava_bucket">岩浆桶 (lava_bucket)</option>
-    <option value="minecraft:milk_bucket">奶桶 (milk_bucket)</option>
-    <option value="minecraft:powder_snow_bucket">细雪桶 (powder_snow_bucket)</option>
-    <option value="__custom__">自定义…</option>
   </select>
-  <input type="text" id="v_bucket_custom" style="display:none;margin-top:6px" placeholder="minecraft:xxx_bucket">
 </div>
 <div class="row"><label>显示名</label><input type="text" id="v_box_name" value="§6矿物村民"></div></div>
 <div class="row"><label>Lore（每行一条）</label><textarea id="v_box_lore" rows="2"></textarea></div>
@@ -663,20 +656,17 @@ function fpPick(el){
 function closeFp(){ fpCb=null; document.getElementById('fp').style.display='none'; }
 
 // ===== 桶类型 =====
-function onBucketChange(){
-  const sel=document.getElementById('v_bucket');
-  document.getElementById('v_bucket_custom').style.display = (sel.value==='__custom__') ? '' : 'none';
-}
 function currentBucket(){
-  const sel=document.getElementById('v_bucket');
-  if(sel.value==='__custom__') return (document.getElementById('v_bucket_custom').value||'').trim() || 'minecraft:cod_bucket';
-  return sel.value;
+  return document.getElementById('v_bucket').value || 'minecraft:cod_bucket';
 }
 function setBucket(v){
   const sel=document.getElementById('v_bucket');
-  const opt=[...sel.options].find(o=>o.value===v);
-  if(opt){ sel.value=v; document.getElementById('v_bucket_custom').style.display='none'; }
-  else { sel.value='__custom__'; const ci=document.getElementById('v_bucket_custom'); ci.value=v||''; ci.style.display=''; }
+  let opt=[...sel.options].find(o=>o.value===v);
+  if(!opt){ // 导入的其它桶类型：动态加一项
+    opt=document.createElement('option'); opt.value=v; opt.textContent=v;
+    sel.appendChild(opt);
+  }
+  sel.value=v;
 }
 </script>
 <!-- 物品ID 选择器弹窗 -->
