@@ -100,5 +100,34 @@
    ]
   },
   "out": "{Count:1b,Damage:0s,Name:\"minecraft:cod_bucket\",WasPickedUp:0b,tag:{ExecuteOnFirstTick:1b,Offers:{Recipes:[{buyA:{Count:1b,Damage:0s,Name:\"minecraft:dirt\",WasPickedUp:0b},buyCountA:1,buyCountB:0,demand:0,maxUses:2145646,priceMultiplierA:0.05f,priceMultiplierB:0.0f,rewardExp:1b,sell:{Count:1b,Damage:0s,Name:\"minecraft:netherite_sword\",WasPickedUp:0b,tag:{Unbreakable:1b,ench:[{id:9s,lvl:5s,modEnchant:\"\"}],display:{Name:\"§c神剑\"}}},tier:0,traderExp:1145,uses:0}]},Pos:[-7.05f,4.0f,-0.8f],Tags:[\"\",\"\"],TickDelay:250,Ticking:0b,definitions:[\"+wandering_trader\"],display:{Name:\"§b商人\"}}}"
+ },
+ "equip2": {
+  "cfg": {
+   "mode": "equipment",
+   "box_name": "§lNBT盒",
+   "direction": "north",
+   "count": 64,
+   "unbreakable": true,
+   "keep_on_death": true,
+   "item_lock": false,
+   "version": 18168865,
+   "items": [
+    {
+     "name": "minecraft:netherite_helmet",
+     "slot": 0,
+     "count": 1,
+     "ench": "5:3",
+     "iname": "",
+     "lore": ""
+    },
+    {
+     "name": "piston",
+     "slot": 5,
+     "count": 1,
+     "snbt": "{Count:1b,Damage:0s,Name:\"minecraft:piston\",Slot:5b,WasPickedUp:0b,tag:{Damage:0,NewState:2b,display:{Name:\"破坏\"},minecraft:keep_on_death:1b}}"
+    }
+   ]
+  },
+  "out": "{Block:{name:\"minecraft:chest\",states:{\"minecraft:cardinal_direction\":\"north\"},val:2s,version:18168865},Count:64b,Damage:0s,Name:\"minecraft:chest\",WasPickedUp:0b,tag:{Items:[{Count:1b,Damage:0s,Name:\"minecraft:netherite_helmet\",Slot:0b,WasPickedUp:0b,tag:{Damage:0,ItemCustomTips:\"\",ItemExtraID:\"\",ModId:\"\",ModItemId:\"\",Unbreakable:1b,display:{ShowInHand:1b},ench:[{id:5s,lvl:3s,modEnchant:\"\"}],\"minecraft:item_lock\":0b,\"minecraft:keep_on_death\":1b}},{Count:1b,Damage:0s,Name:\"minecraft:piston\",Slot:5b,WasPickedUp:0b,tag:{Damage:0,NewState:2b,display:{Name:\"破坏\"},minecraft:\"keep_on_death:1b\"}}],RepairCost:0,display:{Name:\"§lNBT盒\"}}}"
  }
 }

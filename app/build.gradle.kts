@@ -11,8 +11,8 @@ android {
         applicationId = "cn.nbtgen.app"
         minSdk = 26
         targetSdk = 34
-        versionCode = 18
-        versionName = "0.0.18"
+        versionCode = 19
+        versionName = "0.0.19"
     }
 
     buildTypes {

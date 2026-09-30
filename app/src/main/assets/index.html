@@ -42,11 +42,11 @@ td input{width:100%}
 </style></head><body>
 <div class="wrap">
 <h1>NBT 生成器 <span style="font-size:11px;color:var(--mut);font-weight:400">v__VER__</span></h1>
-<div class="sub">网易版 Minecraft · 命令盒 / 装备盒 / 村民鱼桶 三种模式</div>
+<div class="sub">网易版 Minecraft · 命令盒 / NBT盒 / 村民鱼桶 三种模式</div>
 
 <div class="tabs">
   <button class="tab active" data-mode="command" onclick="switchMode('command')">命令盒</button>
-  <button class="tab" data-mode="equipment" onclick="switchMode('equipment')">装备盒</button>
+  <button class="tab" data-mode="equipment" onclick="switchMode('equipment')">NBT盒</button>
   <button class="tab" data-mode="villager" onclick="switchMode('villager')">村民鱼桶</button>
 </div>
 
@@ -92,10 +92,10 @@ td input{width:100%}
 <label><input type="checkbox" id="c_lock"> 物品锁定</label></div></div>
 </div>
 
-<!-- ============ 装备盒面板 ============ -->
+<!-- ============ NBT盒面板 ============ -->
 <div id="panel_equipment" class="panel" style="display:none">
 <div class="row"><label>盒子名 · chest display.Name</label>
-<input type="text" id="e_box_name" value="§l§c正常装备盒"></div>
+<input type="text" id="e_box_name" value="§l§cNBT盒"></div>
 <div class="two">
 <div class="row"><label>箱子朝向</label><select id="e_direction">
 <option>north<option>south<option>east<option>west</select></div>
@@ -104,10 +104,10 @@ td input{width:100%}
 <label><input type="checkbox" id="e_unbreakable" checked> 不可破坏</label>
 <label><input type="checkbox" id="e_keep" checked> 死亡保留</label>
 <label><input type="checkbox" id="e_lock"> 物品锁定</label></div></div>
-<div class="row"><label>装备列表 · 每行一格（附魔格式 id:lvl,id:lvl）</label>
+<div class="row"><label>物品列表 · 每行一格（可选附魔，或从文件选自定义NBT）</label>
   <div id="e_cells"></div>
   <div class="toolbar" style="margin-top:6px">
-    <button class="btn sec" onclick="addEq()">添加装备</button>
+    <button class="btn sec" onclick="addEq()">添加物品</button>
     <button class="btn sec" style="padding:5px 10px" onclick="document.getElementById('ench_ref').style.display=document.getElementById('ench_ref').style.display==='none'?'':'none'">附魔ID对照</button>
     <span class="hint" id="e_count">0 件</span>
   </div>
@@ -301,7 +301,7 @@ function cCollect(){
   return items;
 }
 
-// ===== 装备盒 =====
+// ===== NBT盒 =====
 const ENCH_LIST = Object.keys(ENCH).map(k=>({id:k, cn:ENCH[k]})).sort((a,b)=>(+a.id)-(+b.id));
 function addEnchRow(box, id, lvl){
   const row=document.createElement("div");
@@ -318,7 +318,7 @@ function addEq(o){
   const card=document.createElement("div"); card.className="subcard";
   card.innerHTML=`
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-      <span style="font-size:12px;color:var(--mut)">一件装备</span>
+      <span style="font-size:12px;color:var(--mut)">一个物品</span>
       <button class="btn sec" style="padding:4px 10px" onclick="this.closest('.subcard').remove();eUpd()">删除</button>
     </div>
     <label style="font-size:11px">物品 ID</label>
@@ -334,20 +334,55 @@ function addEq(o){
     <label style="font-size:11px">显示名（可选）</label>
     <input type="text" class="dn" placeholder="例：§c神剑" value="${esc(o.iname||'')}" style="width:100%;margin-bottom:8px">
     <label style="font-size:11px">Lore 物品描述（每行一条，可选）</label>
-    <textarea class="lore" rows="2" placeholder="例：§6神器&#10;§7攻击力 +100" style="width:100%">${esc(o.lore||'')}</textarea>`;
+    <textarea class="lore" rows="2" placeholder="例：§6神器&#10;§7攻击力 +100" style="width:100%">${esc(o.lore||'')}</textarea>
+    <div style="margin-top:8px;display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+      <button class="btn sec" style="padding:5px 10px" onclick="pickItemNbt(this)">用自定义NBT（从文件选）</button>
+      <span class="nbt-badge" style="font-size:11px;color:var(--ok);display:none"></span>
+      <button class="btn sec" style="padding:5px 10px;display:none" onclick="clearItemNbt(this)">清除NBT</button>
+    </div>
+    <textarea class="item_nbt" style="display:none"></textarea>`;
   e_cells.appendChild(card);
   // 填入已有附魔（o.ench 形如 "9:5,0:4"）
   const ebox=card.querySelector(".ench-box");
   String(o.ench||"").split(",").forEach(p=>{
     p=p.trim(); if(p.includes(":")){ const a=p.split(":"); addEnchRow(ebox, a[0].trim(), a[1].trim()); }
   });
+  // 导入时若带 snbt，回填
+  if(o.snbt){
+    card.querySelector(".item_nbt").value=o.snbt;
+    const b=card.querySelector(".nbt-badge");
+    b.textContent="已附加自定义NBT"; b.style.display="";
+    b.nextElementSibling.style.display="";
+  }
   eUpd();
+}
+function pickItemNbt(btn){
+  if(!(window.AndroidBridge && AndroidBridge.listFiles)){ show("此功能仅在 App 内可用","err"); return; }
+  const card=btn.closest(".subcard");
+  openFilePicker(function(name, content){
+    if(!content){ show("文件为空或读取失败","err"); return; }
+    card.querySelector(".item_nbt").value = content;
+    const b=card.querySelector(".nbt-badge");
+    b.textContent = "已附加: " + name; b.style.display="";
+    b.nextElementSibling.style.display="";
+    show("已附加 "+name,"ok");
+  });
+}
+function clearItemNbt(btn){
+  const card=btn.closest(".subcard");
+  card.querySelector(".item_nbt").value="";
+  const b=card.querySelector(".nbt-badge");
+  b.textContent=""; b.style.display="none";
+  btn.style.display="none";
 }
 function eUpd(){ e_count.textContent=e_cells.querySelectorAll(".subcard").length+" 件"; }
 function eCollect(){
   const items=[];
   e_cells.querySelectorAll(".subcard").forEach(card=>{
+    const nbt=(card.querySelector(".item_nbt").value||"").trim();
     const name=card.querySelector(".nm").value.trim();
+    const slot=card.querySelector(".slot").value, count=card.querySelector(".cnt").value;
+    if(nbt){ items.push({name:name||"custom",slot,count,snbt:nbt}); return; }
     if(!name) return;
     const ench=[];
     card.querySelectorAll(".en-row").forEach(r=>{
@@ -355,9 +390,8 @@ function eCollect(){
       const lvl=r.querySelector(".en-lvl").value;
       if(id!=="") ench.push(id+":"+(lvl||1));
     });
-    items.push({name,slot:card.querySelector(".slot").value,count:card.querySelector(".cnt").value,
-      ench:ench.join(","),iname:card.querySelector(".dn").value.trim(),
-      lore:card.querySelector(".lore").value});
+    items.push({name,slot,count,ench:ench.join(","),
+      iname:card.querySelector(".dn").value.trim(),lore:card.querySelector(".lore").value});
   });
   return items;
 }

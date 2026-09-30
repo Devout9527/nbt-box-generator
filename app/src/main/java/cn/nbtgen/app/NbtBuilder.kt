@@ -287,9 +287,32 @@ fun buildEquipmentBox(cfg: JSONObject): Built {
     val built = ArrayList<Tag>()
     for (i in 0 until items.length()) {
         val it = items.optJSONObject(i) ?: continue
+        val slotRaw = it.opt("slot")
+        val slot = if (slotRaw == null || slotRaw === JSONObject.NULL ||
+            slotRaw.toString().isEmpty() || slotRaw.toString() == "null") built.size
+            else it.asInt("slot", built.size)
+        // 自定义 NBT 物品：从文件读入的完整 NBT，直接嵌入
+        val snbt = it.asStr("snbt").trim()
+        if (snbt.isNotEmpty()) {
+            try {
+                val tag = parsedToTag(SnbtParser(snbt).parse())
+                if (tag is TCompound) {
+                    if (slotRaw != null && slotRaw !== JSONObject.NULL &&
+                        slotRaw.toString().isNotEmpty() && slotRaw.toString() != "null") {
+                        tag.map["Slot"] = TByte(slot)
+                    }
+                    val cntRaw = it.opt("count")
+                    if (cntRaw != null && cntRaw !== JSONObject.NULL &&
+                        cntRaw.toString().isNotEmpty() && cntRaw.toString() != "0") {
+                        tag.map["Count"] = TByte(it.asInt("count", 1))
+                    }
+                    built.add(tag)
+                    continue
+                }
+            } catch (_: Exception) {}
+        }
         val name = it.asStr("name").trim()
         if (name.isEmpty()) continue
-        val slot = it.asInt("slot", built.size)
         val cnt = it.asInt("count", 1)
         val ep = ArrayList<Pair<Int, Int>>()
         it.asStr("ench").split(",").forEach { part ->

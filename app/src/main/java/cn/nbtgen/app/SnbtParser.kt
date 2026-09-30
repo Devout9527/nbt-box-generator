@@ -249,6 +249,10 @@ object ModelParser {
             .put("items", JSONArray().put(item))
     }
 
+    private val STD_TOP = setOf("Count", "Damage", "Name", "Slot", "WasPickedUp", "tag")
+    private val STD_TAG = setOf("Damage", "ItemCustomTips", "ItemExtraID", "ModId", "ModItemId",
+        "Unbreakable", "display", "ench", "minecraft:item_lock", "minecraft:keep_on_death")
+
     private fun parseEquipment(root: Map<String, Any>, tag: Map<String, Any>, items: List<Any>): JSONObject {
         val boxName = asMap(tag["display"])["Name"]?.toString() ?: ""
         val itemsArr = JSONArray()
@@ -256,6 +260,18 @@ object ModelParser {
         for (it in items) {
             val m = asMap(it)
             val itTag = asMap(m["tag"])
+            val extra = (m.keys - STD_TOP).isNotEmpty() || (itTag.keys - STD_TAG).isNotEmpty()
+            if (extra) {
+                // 非标准物品（含特殊 tag）→ 用 snbt 保真
+                try {
+                    itemsArr.put(JSONObject()
+                        .put("name", m["Name"]?.toString() ?: "")
+                        .put("slot", numInt(m["Slot"]))
+                        .put("count", numInt(m["Count"], 1))
+                        .put("snbt", parsedToTag(m).dump()))
+                    continue
+                } catch (_: Exception) {}
+            }
             val disp = asMap(itTag["display"])
             val ep = ArrayList<String>()
             for (e in asList(itTag["ench"])) {

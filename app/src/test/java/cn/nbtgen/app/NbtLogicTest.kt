@@ -20,6 +20,9 @@ class NbtLogicTest {
     fun equipmentBoxMatchesPython() = check("equip")
 
     @Test
+    fun equipmentCustomItemMatchesPython() = check("equip2")
+
+    @Test
     fun villagerBucketMatchesPython() = check("vill")
 
     @Test
