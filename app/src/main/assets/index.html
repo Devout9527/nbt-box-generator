@@ -118,7 +118,22 @@ td input{width:100%}
 <!-- ============ 村民鱼桶面板 ============ -->
 <div id="panel_villager" class="panel" style="display:none">
 <div class="two">
-<div class="row"><label>桶物品 id</label><input type="text" id="v_bucket" value="minecraft:cod_bucket"></div>
+<div class="row"><label>桶类型</label>
+  <select id="v_bucket" onchange="onBucketChange()">
+    <option value="minecraft:cod_bucket">鳕鱼桶 (cod_bucket)</option>
+    <option value="minecraft:salmon_bucket">鲑鱼桶 (salmon_bucket)</option>
+    <option value="minecraft:tropical_fish_bucket">热带鱼桶 (tropical_fish_bucket)</option>
+    <option value="minecraft:pufferfish_bucket">河豚桶 (pufferfish_bucket)</option>
+    <option value="minecraft:axolotl_bucket">美西螈桶 (axolotl_bucket)</option>
+    <option value="minecraft:tadpole_bucket">蝌蚪桶 (tadpole_bucket)</option>
+    <option value="minecraft:water_bucket">水桶 (water_bucket)</option>
+    <option value="minecraft:lava_bucket">岩浆桶 (lava_bucket)</option>
+    <option value="minecraft:milk_bucket">奶桶 (milk_bucket)</option>
+    <option value="minecraft:powder_snow_bucket">细雪桶 (powder_snow_bucket)</option>
+    <option value="__custom__">自定义…</option>
+  </select>
+  <input type="text" id="v_bucket_custom" style="display:none;margin-top:6px" placeholder="minecraft:xxx_bucket">
+</div>
 <div class="row"><label>显示名</label><input type="text" id="v_box_name" value="§6矿物村民"></div></div>
 <div class="row"><label>Lore（每行一条）</label><textarea id="v_box_lore" rows="2"></textarea></div>
 <div class="two">
@@ -374,16 +389,54 @@ function addTrade(o){
       <input type="text" class="sell" list="item_ids" placeholder="minecraft:netherite_block" value="${esc(o.sell||'')}" style="flex:1;min-width:0">
       <button class="btn sec" style="padding:6px 10px;flex:none" onclick="openItemPicker(this.previousElementSibling)">选</button>
       <input type="number" class="sc" title="卖出数量" placeholder="数量" value="${o.sell_count!=null?o.sell_count:64}" style="width:70px;flex:none">
-    </div>`;
+    </div>
+    <div style="margin-top:6px;display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+      <button class="btn sec" style="padding:5px 10px" onclick="pickSellNbt(this)">卖出物用自定义NBT（从文件选）</button>
+      <span class="nbt-badge" style="font-size:11px;color:var(--ok);display:none"></span>
+      <button class="btn sec" style="padding:5px 10px;display:none" onclick="clearSellNbt(this)">清除NBT</button>
+    </div>
+    <textarea class="sell_nbt" style="display:none"></textarea>`;
   v_cells.appendChild(card); vUpd();
+  // 导入时若带 sell_snbt，回填
+  if(o.sell_snbt){
+    card.querySelector(".sell_nbt").value = o.sell_snbt;
+    const badge = card.querySelector(".nbt-badge");
+    badge.textContent = "已附加自定义NBT"; badge.style.display="";
+    card.querySelector(".nbt-badge").nextElementSibling.style.display="";
+  }
+}
+function pickSellNbt(btn){
+  if(!(window.AndroidBridge && AndroidBridge.listFiles)){ show("此功能仅在 App 内可用","err"); return; }
+  const card=btn.closest(".subcard");
+  openFilePicker(function(name, content){
+    if(!content){ show("文件为空或读取失败","err"); return; }
+    card.querySelector(".sell_nbt").value = content;
+    const badge = card.querySelector(".nbt-badge");
+    badge.textContent = "已附加: " + name; badge.style.display="";
+    card.querySelector(".nbt-badge").nextElementSibling.style.display="";
+    show("已附加 "+name,"ok");
+  });
+}
+function clearSellNbt(btn){
+  const card=btn.closest(".subcard");
+  card.querySelector(".sell_nbt").value="";
+  const badge=card.querySelector(".nbt-badge");
+  badge.textContent=""; badge.style.display="none";
+  btn.style.display="none";
 }
 function vUpd(){ v_count_lbl.textContent=v_cells.querySelectorAll(".subcard").length+" 笔"; }
 function vCollect(){
   const trades=[];
   v_cells.querySelectorAll(".subcard").forEach(card=>{
     const buy=card.querySelector(".buy").value.trim();
+    const nbt=(card.querySelector(".sell_nbt").value||"").trim();
     const sell=card.querySelector(".sell").value.trim();
-    if(buy&&sell) trades.push({buy,buy_count:card.querySelector(".bc").value,sell,sell_count:card.querySelector(".sc").value});
+    const bc=card.querySelector(".bc").value, sc=card.querySelector(".sc").value;
+    if(nbt){
+      trades.push({buy,buy_count:bc,sell_snbt:nbt,sell_count:sc});
+    }else if(buy&&sell){
+      trades.push({buy,buy_count:bc,sell,sell_count:sc});
+    }
   });
   return trades;
 }
@@ -400,7 +453,7 @@ function cfg(){
     box_name:e_box_name.value,direction:e_direction.value,count:e_count_top.value,
     unbreakable:e_unbreakable.checked,keep_on_death:e_keep.checked,item_lock:e_lock.checked,
     items:eCollect(),version:v};
-  return {mode:"villager",bucket_name:v_bucket.value,box_name:v_box_name.value,
+  return {mode:"villager",bucket_name:currentBucket(),box_name:v_box_name.value,
     box_lore:v_box_lore.value,count:v_count.value,maxUses:v_maxUses.value,
     traderExp:v_traderExp.value,tickDelay:v_tickDelay.value,definitions:v_definitions.value,
     trades:vCollect(),version:v};
@@ -455,7 +508,7 @@ function loadModel(m){
     e_cells.innerHTML=""; (m.items||[]).forEach(it=>addEq(it));
     flog("loadModel equipment: "+((m.items||[]).length)+" 件");
   } else if(m.mode==="villager"){
-    v_bucket.value=m.bucket_name||"minecraft:cod_bucket";
+    setBucket(m.bucket_name||"minecraft:cod_bucket");
     v_box_name.value=m.box_name||""; v_box_lore.value=m.box_lore||"";
     v_count.value=m.count||1; v_maxUses.value=m.maxUses||1000;
     v_traderExp.value=m.traderExp||1145; v_tickDelay.value=m.tickDelay||250;
@@ -576,6 +629,55 @@ function pickItem(el){
 }
 function closePicker(){ document.getElementById('picker').style.display='none'; }
 document.addEventListener('keyup',e=>{ if(e.key==='Escape') closePicker(); });
+
+// ===== 保存目录文件选择器 =====
+let fpCb=null;
+function openFilePicker(cb){
+  fpCb=cb;
+  document.getElementById('fp').style.display='';
+  const s=document.getElementById('fp_search'); s.value='';
+  renderFp('');
+  setTimeout(()=>s.focus(),50);
+}
+function renderFp(q){
+  const list=document.getElementById('fp_list');
+  let files=[];
+  try{ files=JSON.parse(AndroidBridge.listFiles()); }catch(e){}
+  q=(q||'').trim().toLowerCase();
+  if(q) files=files.filter(f=>(f.name||'').toLowerCase().includes(q));
+  list.innerHTML = files.length
+    ? files.map(f=>`<div onclick="fpPick(this)" data-n="${esc(f.name)}" style="padding:9px 10px;border-bottom:1px solid var(--border);cursor:pointer;font-size:13px">
+        <div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(f.name)}</div>
+        <div style="font-size:11px;color:var(--mut)">${(f.size/1024).toFixed(1)} KB</div>
+      </div>`).join('')
+    : '<div style="padding:12px;color:var(--mut)">目录里没有文件（先在下面生成并「下载」保存一个）</div>';
+}
+function fpPick(el){
+  const name=el.getAttribute('data-n');
+  let content='';
+  try{ content=AndroidBridge.readFile(name); }catch(e){}
+  const cb=fpCb; fpCb=null;
+  document.getElementById('fp').style.display='none';
+  if(cb) cb(name, content);
+}
+function closeFp(){ fpCb=null; document.getElementById('fp').style.display='none'; }
+
+// ===== 桶类型 =====
+function onBucketChange(){
+  const sel=document.getElementById('v_bucket');
+  document.getElementById('v_bucket_custom').style.display = (sel.value==='__custom__') ? '' : 'none';
+}
+function currentBucket(){
+  const sel=document.getElementById('v_bucket');
+  if(sel.value==='__custom__') return (document.getElementById('v_bucket_custom').value||'').trim() || 'minecraft:cod_bucket';
+  return sel.value;
+}
+function setBucket(v){
+  const sel=document.getElementById('v_bucket');
+  const opt=[...sel.options].find(o=>o.value===v);
+  if(opt){ sel.value=v; document.getElementById('v_bucket_custom').style.display='none'; }
+  else { sel.value='__custom__'; const ci=document.getElementById('v_bucket_custom'); ci.value=v||''; ci.style.display=''; }
+}
 </script>
 <!-- 物品ID 选择器弹窗 -->
 <div id="picker" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:100;padding:14px" onclick="if(event.target===this)closePicker()">
@@ -585,6 +687,16 @@ document.addEventListener('keyup',e=>{ if(e.key==='Escape') closePicker(); });
       <button class="btn sec" onclick="closePicker()">关闭</button>
     </div>
     <div id="picker_list" style="overflow:auto;flex:1;background:#15171d;border-radius:8px"></div>
+  </div>
+</div>
+<!-- 保存目录 文件选择器 -->
+<div id="fp" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:110;padding:14px" onclick="if(event.target===this)closeFp()">
+  <div style="max-width:540px;margin:6vh auto 0;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;max-height:80vh;display:flex;flex-direction:column">
+    <div style="display:flex;gap:8px;margin-bottom:8px">
+      <input id="fp_search" placeholder="搜索文件名" oninput="renderFp(this.value)" style="flex:1">
+      <button class="btn sec" onclick="closeFp()">关闭</button>
+    </div>
+    <div id="fp_list" style="overflow:auto;flex:1;background:#15171d;border-radius:8px"></div>
   </div>
 </div>
 </body></html>

@@ -289,15 +289,27 @@ object ModelParser {
         val disp = asMap(tag["display"])
         val recipes = asList(asMap(tag["Offers"])["Recipes"])
         val trades = JSONArray()
+        val simpleKeys = setOf("Count", "Damage", "Name", "WasPickedUp")
         for (r in recipes) {
             val rm = asMap(r)
             val buy = asMap(rm["buyA"])
             val sell = asMap(rm["sell"])
-            trades.put(JSONObject()
+            val sellKeys = sell.keys
+            val item = JSONObject()
                 .put("buy", buy["Name"]?.toString() ?: "")
                 .put("buy_count", numInt(buy["Count"], 1))
-                .put("sell", sell["Name"]?.toString() ?: "")
-                .put("sell_count", numInt(sell["Count"], 1)))
+                .put("sell_count", numInt(sell["Count"], 1))
+            // 卖出物带 tag 或额外字段 → 用 sell_snbt 保真
+            if ("tag" in sellKeys || sellKeys.any { it !in simpleKeys }) {
+                try {
+                    item.put("sell_snbt", parsedToTag(sell).dump())
+                } catch (_: Exception) {
+                    item.put("sell", sell["Name"]?.toString() ?: "")
+                }
+            } else {
+                item.put("sell", sell["Name"]?.toString() ?: "")
+            }
+            trades.put(item)
         }
         val firstRecipe = asMap(recipes.firstOrNull())
         return JSONObject()

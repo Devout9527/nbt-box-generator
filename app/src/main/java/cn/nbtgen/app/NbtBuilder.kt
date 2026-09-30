@@ -148,7 +148,41 @@ fun makeTradeItem(name: String, count: Int): TCompound =
     comp("Count" to TByte(count), "Damage" to TShort(0),
          "Name" to TString(name), "WasPickedUp" to TByte(0))
 
-fun makeRecipe(buyName: String, buyCount: Int, sellName: String, sellCount: Int,
+/** 把解析后的结构（Map/List/String）转回 Tag，用于嵌入自定义 NBT 物品 */
+fun parsedToTag(o: Any?): Tag = when (o) {
+    is Tag -> o
+    is Map<*, *> -> {
+        val m = LinkedHashMap<String, Tag>()
+        for ((k, v) in o) m[k.toString()] = parsedToTag(v)
+        TCompound(m)
+    }
+    is List<*> -> TList(o.map { parsedToTag(it) })
+    is String -> strToTag(o)
+    is Boolean -> TByte(if (o) 1 else 0)
+    is Number -> TInt(o.toInt())
+    else -> TString(o.toString())
+}
+
+private fun strToTag(s: String): Tag {
+    val t = s.trim()
+    if (t.isNotEmpty() && t.last() in "bsfdlL") {
+        val core = t.dropLast(1)
+        core.toIntOrNull()?.let {
+            return when (t.last()) {
+                'b' -> TByte(it)
+                's' -> TShort(it)
+                'f' -> TFloat(core.toDoubleOrNull() ?: 0.0)
+                'd' -> TDouble(core.toDoubleOrNull() ?: 0.0)
+                else -> TInt(it)  // l / L
+            }
+        }
+    }
+    t.toIntOrNull()?.let { return TInt(it) }
+    t.toDoubleOrNull()?.let { return TDouble(it) }
+    return TString(s)
+}
+
+fun makeRecipe(buyName: String, buyCount: Int, sellTag: Tag,
                maxUses: Int, traderExp: Int): TCompound =
     comp(
         "buyA" to makeTradeItem(buyName, buyCount),
@@ -159,7 +193,7 @@ fun makeRecipe(buyName: String, buyCount: Int, sellName: String, sellCount: Int,
         "priceMultiplierA" to TFloat(0.05),
         "priceMultiplierB" to TFloat(0.0),
         "rewardExp" to TByte(1),
-        "sell" to makeTradeItem(sellName, sellCount),
+        "sell" to sellTag,
         "tier" to TInt(0),
         "traderExp" to TInt(traderExp),
         "uses" to TInt(0)
@@ -296,10 +330,32 @@ fun buildVillagerBucket(cfg: JSONObject): Built {
     for (i in 0 until trades.length()) {
         val t = trades.optJSONObject(i) ?: continue
         val buy = t.asStr("buy").trim()
+        if (buy.isEmpty()) continue
+        val buyCount = t.asInt("buy_count", 1)
+        val sellSnbt = t.asStr("sell_snbt").trim()
+        if (sellSnbt.isNotEmpty()) {
+            // 自定义 NBT 卖出物：解析后嵌入，可覆盖数量
+            try {
+                val parsed = SnbtParser(sellSnbt).parse()
+                val sellTag = parsedToTag(parsed)
+                val sc = t.opt("sell_count")
+                val scInt = when (sc) {
+                    null, JSONObject.NULL -> 0
+                    is Number -> sc.toInt()
+                    is String -> sc.trim().toIntOrNull() ?: 0
+                    else -> 0
+                }
+                if (scInt != 0 && sellTag is TCompound) {
+                    sellTag.map["Count"] = TByte(scInt)
+                }
+                recipes.add(makeRecipe(buy, buyCount, sellTag, maxUses, traderExp))
+                continue
+            } catch (_: Exception) {}
+        }
         val sell = t.asStr("sell").trim()
-        if (buy.isEmpty() || sell.isEmpty()) continue
-        recipes.add(makeRecipe(buy, t.asInt("buy_count", 1), sell,
-            t.asInt("sell_count", 64), maxUses, traderExp))
+        if (sell.isEmpty()) continue
+        recipes.add(makeRecipe(buy, buyCount,
+            makeTradeItem(sell, t.asInt("sell_count", 64)), maxUses, traderExp))
     }
     if (recipes.isEmpty()) throw IllegalArgumentException("没有有效交易")
 
