@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>NBT 生成器</title>
+<style>
+:root{--bg:#1a1d24;--card:#252932;--border:#3a3f4b;--txt:#e6e6e6;--mut:#8b93a7;--acc:#4ea1ff;--ok:#3fb950;--err:#f85149}
+*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--txt);line-height:1.5}
+.wrap{max-width:980px;margin:0 auto;padding:14px}
+h1{font-size:19px;margin:0 0 4px}
+.sub{color:var(--mut);font-size:12px;margin-bottom:12px}
+.tabs{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
+.tab{background:#252932;border:1px solid var(--border);color:var(--mut);border-radius:8px;padding:8px 16px;font-size:13px;cursor:pointer;font-weight:600}
+.tab.active{background:var(--acc);color:#fff;border-color:var(--acc)}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:760px){.grid{grid-template-columns:1fr}}
+.card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px}
+.card h2{font-size:14px;margin:0 0 12px;border-bottom:1px solid var(--border);padding-bottom:7px}
+.row{margin-bottom:11px}.row:last-child{margin-bottom:0}
+label{display:block;font-size:12px;color:var(--mut);margin-bottom:3px}
+input[type=text],input[type=number],select,textarea{width:100%;background:#1c2029;border:1px solid var(--border);border-radius:6px;color:var(--txt);padding:7px 9px;font-size:14px;font-family:inherit}
+textarea{resize:vertical}
+.hint{font-size:11px;color:var(--mut);margin-top:3px}
+.checks{display:flex;flex-wrap:wrap;gap:8px 14px}
+.checks label{display:flex;align-items:center;gap:5px;margin:0;font-size:13px;color:var(--txt);cursor:pointer}
+.checks input{width:auto}
+.btn{display:inline-flex;align-items:center;gap:5px;background:var(--acc);color:#fff;border:none;border-radius:7px;padding:9px 16px;font-size:13px;font-weight:600;cursor:pointer}
+.btn:hover{filter:brightness(1.1)}.btn.sec{background:#3a3f4b}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
+table{width:100%;border-collapse:collapse}
+th{text-align:left;font-size:11px;color:var(--mut);padding:2px 4px}
+td{padding:2px 4px}
+td input{width:100%}
+.subcard{background:#1c2029;border:1px solid var(--border);border-radius:8px;padding:10px;margin-top:8px}
+#out{white-space:pre-wrap;word-break:break-all;background:#15171d;border:1px solid var(--border);border-radius:8px;padding:10px;font-family:"SF Mono",Consolas,monospace;font-size:11px;max-height:380px;overflow:auto}
+.msg{font-size:12px;padding:7px 10px;border-radius:6px;margin-bottom:8px}
+.msg.ok{background:rgba(63,185,80,.15);color:var(--ok)}
+.msg.err{background:rgba(248,81,73,.15);color:var(--err)}
+.stat{font-size:11px;color:var(--mut)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+</style></head><body>
+<div class="wrap">
+<h1>NBT 生成器 <span style="font-size:11px;color:var(--mut);font-weight:400">v__VER__</span></h1>
+<div class="sub">网易版 Minecraft · 命令盒 / 装备盒 / 村民鱼桶 三种模式</div>
+
+<div class="tabs">
+  <button class="tab active" data-mode="command" onclick="switchMode('command')">命令盒</button>
+  <button class="tab" data-mode="equipment" onclick="switchMode('equipment')">装备盒</button>
+  <button class="tab" data-mode="villager" onclick="switchMode('villager')">村民鱼桶</button>
+</div>
+
+<div class="grid">
+<div class="card">
+<h2>配置</h2>
+
+<div class="row" style="background:#1c2029;border:1px dashed var(--border);border-radius:8px;padding:10px">
+  <label>导入已有 NBT（自动识别模式并载入）</label>
+  <textarea id="import_text" rows="3" placeholder="粘贴整段 SNBT 文本" style="font-family:'SF Mono',Consolas,monospace;font-size:12px"></textarea>
+  <div class="toolbar" style="margin-top:6px">
+    <button class="btn sec" id="do_import">解析并载入</button>
+  </div>
+</div>
+
+<!-- ============ 命令盒面板 ============ -->
+<div id="panel_command" class="panel">
+<div class="row"><label>L1 盒子名 · chest CustomName（支持 § 颜色码）</label>
+<input type="text" id="c_box_name" value="§r§f§l§aDevout盒子"></div>
+<div class="row"><label>L1 盒子 Lore（每行一条）</label>
+<textarea id="c_box_lore" rows="3" placeholder="§e━━ 盒子说明 ━━"></textarea></div>
+<div class="row"><label>格子列表 · 每格一个 L2 物品，内含多个 L3 矿车</label>
+  <div id="c_cells"></div>
+  <div class="toolbar" style="margin-top:6px">
+    <button class="btn sec" onclick="addCell()">添加格子</button>
+    <span class="hint" id="c_count">0 格</span>
+  </div>
+</div>
+<div class="two">
+<div class="row"><label>箱子朝向</label><select id="c_direction">
+<option>north<option>south<option>east<option>west</select></div>
+<div class="row"><label>盒子数量</label><input type="number" id="c_count_top" value="64" min="1" max="64"></div></div>
+<div class="two">
+<div class="row"><label>Ticking</label><input type="number" id="c_ticking" value="60"></div>
+<div class="row"><label>tick_world radius</label><input type="number" id="c_radius" value="4"></div></div>
+<div class="row"><label>选项</label><div class="checks">
+<label><input type="checkbox" id="c_tick_world" checked> tick_world</label>
+<label><input type="checkbox" id="c_unbreakable" checked> 不可破坏</label>
+<label><input type="checkbox" id="c_keep" checked> 死亡保留</label>
+<label><input type="checkbox" id="c_ench" checked> 附魔伪装</label>
+<label><input type="checkbox" id="c_lock"> 物品锁定</label></div></div>
+</div>
+
+<!-- ============ 装备盒面板 ============ -->
+<div id="panel_equipment" class="panel" style="display:none">
+<div class="row"><label>盒子名 · chest display.Name</label>
+<input type="text" id="e_box_name" value="§l§c正常装备盒"></div>
+<div class="two">
+<div class="row"><label>箱子朝向</label><select id="e_direction">
+<option>north<option>south<option>east<option>west</select></div>
+<div class="row"><label>盒子数量</label><input type="number" id="e_count_top" value="64" min="1" max="64"></div></div>
+<div class="row"><label>选项</label><div class="checks">
+<label><input type="checkbox" id="e_unbreakable" checked> 不可破坏</label>
+<label><input type="checkbox" id="e_keep" checked> 死亡保留</label>
+<label><input type="checkbox" id="e_lock"> 物品锁定</label></div></div>
+<div class="row"><label>装备列表 · 每行一格（附魔格式 id:lvl,id:lvl）</label>
+  <div id="e_cells"></div>
+  <div class="toolbar" style="margin-top:6px">
+    <button class="btn sec" onclick="addEq()">添加装备</button>
+    <button class="btn sec" style="padding:5px 10px" onclick="document.getElementById('ench_ref').style.display=document.getElementById('ench_ref').style.display==='none'?'':'none'">附魔ID对照</button>
+    <span class="hint" id="e_count">0 件</span>
+  </div>
+</div>
+<div id="ench_ref" style="display:none;background:#15171d;border:1px solid var(--border);border-radius:8px;padding:8px;font-size:11px;color:var(--mut);max-height:200px;overflow:auto"></div>
+</div>
+
+<!-- ============ 村民鱼桶面板 ============ -->
+<div id="panel_villager" class="panel" style="display:none">
+<div class="two">
+<div class="row"><label>桶物品 id</label><input type="text" id="v_bucket" value="minecraft:cod_bucket"></div>
+<div class="row"><label>显示名</label><input type="text" id="v_box_name" value="§6矿物村民"></div></div>
+<div class="row"><label>Lore（每行一条）</label><textarea id="v_box_lore" rows="2"></textarea></div>
+<div class="two">
+<div class="row"><label>数量</label><input type="number" id="v_count" value="1" min="1"></div>
+<div class="row"><label>TickDelay</label><input type="number" id="v_tickDelay" value="250"></div></div>
+<div class="two">
+<div class="row"><label>maxUses（交易次数）</label><input type="number" id="v_maxUses" value="1000"></div>
+<div class="row"><label>traderExp</label><input type="number" id="v_traderExp" value="1145"></div></div>
+<div class="row"><label>definitions（实体定义，逗号分隔）</label><input type="text" id="v_definitions" value="+wandering_trader"></div>
+<div class="row"><label>交易列表 · 每行一笔（1 买入物 → N 卖出物）</label>
+  <div id="v_cells"></div>
+  <div class="toolbar" style="margin-top:6px">
+    <button class="btn sec" onclick="addTrade()">添加交易</button>
+    <span class="hint" id="v_count_lbl">0 笔</span>
+  </div>
+</div>
+</div>
+
+<div class="row"><label>数据版本 version</label><input type="text" id="version" value="18168865"></div>
+<div class="toolbar" style="margin-top:4px">
+<button class="btn" id="gen">生成 NBT</button>
+<button class="btn sec" id="dl" disabled>下载</button>
+<button class="btn sec" id="cp" disabled>复制</button></div>
+<div id="msg"></div>
+</div>
+
+<div class="card"><h2 style="display:flex;align-items:center;justify-content:space-between">
+  <span>输出预览 <span class="stat" id="stat"></span></span>
+  <button class="btn sec" style="padding:5px 10px;font-size:12px" onclick="exportLog()">导出日志</button>
+</h2>
+<div id="out">点击「生成 NBT」查看结果…</div></div>
+</div></div>
+
+<script>
+// ===== 物品 ID 参考 + 附魔 ID 对照 =====
+const ITEM_DEF = [
+["minecraft:netherite_helmet","下界合金头盔"],["minecraft:netherite_chestplate","下界合金胸甲"],["minecraft:netherite_leggings","下界合金护腿"],["minecraft:netherite_boots","下界合金靴子"],
+["minecraft:diamond_helmet","钻石头盔"],["minecraft:diamond_chestplate","钻石胸甲"],["minecraft:diamond_leggings","钻石护腿"],["minecraft:diamond_boots","钻石靴子"],
+["minecraft:iron_helmet","铁头盔"],["minecraft:iron_chestplate","铁胸甲"],["minecraft:iron_leggings","铁护腿"],["minecraft:iron_boots","铁靴子"],
+["minecraft:golden_helmet","金头盔"],["minecraft:golden_chestplate","金胸甲"],["minecraft:golden_leggings","金护腿"],["minecraft:golden_boots","金靴子"],
+["minecraft:leather_helmet","皮革帽子"],["minecraft:leather_chestplate","皮革外套"],["minecraft:leather_leggings","皮革裤子"],["minecraft:leather_boots","皮革靴子"],
+["minecraft:turtle_helmet","海龟壳"],["minecraft:netherite_sword","下界合金剑"],["minecraft:netherite_pickaxe","下界合金镐"],["minecraft:netherite_axe","下界合金斧"],
+["minecraft:netherite_shovel","下界合金锹"],["minecraft:netherite_hoe","下界合金锄"],["minecraft:diamond_sword","钻石剑"],["minecraft:diamond_pickaxe","钻石镐"],
+["minecraft:diamond_axe","钻石斧"],["minecraft:diamond_shovel","钻石锹"],["minecraft:diamond_hoe","钻石锄"],["minecraft:iron_sword","铁剑"],
+["minecraft:iron_pickaxe","铁镐"],["minecraft:iron_axe","铁斧"],["minecraft:iron_shovel","铁锹"],["minecraft:iron_hoe","铁锄"],
+["minecraft:golden_sword","金剑"],["minecraft:golden_pickaxe","金镐"],["minecraft:golden_axe","金斧"],["minecraft:golden_shovel","金锹"],
+["minecraft:golden_hoe","金锄"],["minecraft:stone_sword","石剑"],["minecraft:stone_pickaxe","石镐"],["minecraft:stone_axe","石斧"],
+["minecraft:stone_shovel","石锹"],["minecraft:stone_hoe","石锄"],["minecraft:wooden_sword","木剑"],["minecraft:wooden_pickaxe","木镐"],
+["minecraft:wooden_axe","木斧"],["minecraft:wooden_shovel","木锹"],["minecraft:wooden_hoe","木锄"],["minecraft:bow","弓"],
+["minecraft:crossbow","弩"],["minecraft:trident","三叉戟"],["minecraft:mace","重锤"],["minecraft:shield","盾牌"],
+["minecraft:flint_and_steel","打火石"],["minecraft:fishing_rod","钓鱼竿"],["minecraft:shears","剪刀"],["minecraft:netherite_block","下界合金块"],
+["minecraft:diamond_block","钻石块"],["minecraft:emerald_block","绿宝石块"],["minecraft:gold_block","金块"],["minecraft:iron_block","铁块"],
+["minecraft:coal_block","煤炭块"],["minecraft:redstone_block","红石块"],["minecraft:lapis_block","青金石块"],["minecraft:netherite_ingot","下界合金锭"],
+["minecraft:netherite_scrap","下界合金碎片"],["minecraft:diamond","钻石"],["minecraft:emerald","绿宝石"],["minecraft:gold_ingot","金锭"],
+["minecraft:iron_ingot","铁锭"],["minecraft:coal","煤炭"],["minecraft:redstone","红石粉"],["minecraft:lapis_lazuli","青金石"],
+["minecraft:quartz","下界石英"],["minecraft:amethyst_shard","紫水晶碎片"],["minecraft:grass_block","草方块"],["minecraft:moving_block","移动方块"],
+["minecraft:command_block","命令方块"],["minecraft:hay_block","干草捆"],["minecraft:slime_block","黏液块"],["minecraft:honey_block","蜂蜜块"],
+["minecraft:golden_apple","金苹果"],["minecraft:enchanted_golden_apple","附魔金苹果"],["minecraft:golden_carrot","金胡萝卜"],["minecraft:bread","面包"],
+["minecraft:cooked_beef","牛排"],["minecraft:cooked_porkchop","熟猪排"],["minecraft:cooked_mutton","熟羊肉"],["minecraft:cooked_chicken","熟鸡肉"],
+["minecraft:cooked_cod","熟鳕鱼"],["minecraft:cooked_salmon","熟鲑鱼"],["minecraft:cod_bucket","鳕鱼桶"],["minecraft:salmon_bucket","鲑鱼桶"],
+["minecraft:tropical_fish_bucket","热带鱼桶"],["minecraft:axolotl_bucket","美西螈桶"],["minecraft:pufferfish_bucket","河豚桶"],["minecraft:water_bucket","水桶"],
+["minecraft:lava_bucket","熔岩桶"],["minecraft:milk_bucket","奶桶"],["minecraft:powder_snow_bucket","细雪桶"],["minecraft:totem_of_undying","不死图腾"],
+["minecraft:firework_rocket","烟花火箭"],["minecraft:arrow","箭"],["minecraft:spectral_arrow","光灵箭"],["minecraft:tipped_arrow","药箭"],
+["minecraft:potion","药水"],["minecraft:splash_potion","喷溅药水"],["minecraft:lingering_potion","滞留药水"],["minecraft:experience_bottle","附魔之瓶"],
+["minecraft:ender_pearl","末影珍珠"],["minecraft:ender_eye","末影之眼"],["minecraft:beacon","信标"],["minecraft:conduit","潮涌核心"],
+["minecraft:nether_star","下界之星"],["minecraft:dragon_egg","龙蛋"],["minecraft:white_bundle","白色收纳袋"],["minecraft:name_tag","命名牌"],
+["minecraft:saddle","鞍"],["minecraft:lead","拴绳"],["minecraft:compass","指南针"],["minecraft:clock","时钟"],
+["minecraft:map","空地图"],["minecraft:book","书"],["minecraft:writable_book","书与笔"],["minecraft:written_book","成书"],
+["minecraft:ender_chest","末影箱"],["minecraft:dirt","泥土"],["minecraft:coarse_dirt","砂土"],["minecraft:stone","石头"],
+["minecraft:cobblestone","圆石"],["minecraft:bedrock","基岩"],["minecraft:obsidian","黑曜石"],["minecraft:crying_obsidian","哭泣的黑曜石"],
+["minecraft:beehive","蜂箱"],["minecraft:chest","箱子"],["minecraft:barrel","木桶"],["minecraft:shulker_box","潜影盒"],
+["minecraft:anvil","铁砧"],["minecraft:enchanting_table","附魔台"],["minecraft:crafting_table","工作台"],["minecraft:furnace","熔炉"],
+["minecraft:piston","活塞"],["minecraft:mob_spawner","刷怪笼"],["minecraft:sand","沙子"],["minecraft:gravel","沙砾"],
+["minecraft:glass","玻璃"],["minecraft:oak_planks","橡木木板"],["minecraft:log","原木(橡木)"],["minecraft:tnt","TNT"],
+["minecraft:water","水"],["minecraft:lava","熔岩"],["minecraft:sponge","海绵"],["minecraft:elytra","鞘翅"]
+];
+const ENCH = {0:"保护",1:"火焰保护",2:"摔落保护",3:"爆炸保护",4:"弹射物保护",5:"水下呼吸",6:"水下速掘",7:"荆棘",8:"深海探索者",9:"锋利",10:"亡灵杀手",11:"节肢杀手",12:"击退",13:"火焰附加",14:"抢夺",15:"效率",16:"精准采集",17:"耐久",18:"时运",19:"力量",20:"冲击",21:"火矢",22:"无限",23:"海之眷顾",24:"饵钓",25:"冰霜行者",26:"经验修补",27:"绑定诅咒",28:"消失诅咒",29:"穿刺",30:"激流",31:"忠诚",32:"引雷",33:"多重射击",34:"穿透",35:"快速装填",36:"灵魂疾行",37:"迅捷潜行"};
+// 物品条目统一格式：[{id, cn}]
+let ITEMS = ITEM_DEF.map(a=>({id:a[0], cn:a[1]}));
+function buildDatalist(){
+  const old=document.getElementById('item_ids'); if(old) old.remove();
+  let dl="<datalist id='item_ids'>";
+  ITEMS.forEach(it=>{ dl+="<option value='"+it.id+"'>"+(it.cn?esc(it.cn)+" ":"")+it.id+"</option>"; });
+  dl+="</datalist>";
+  document.body.insertAdjacentHTML("beforeend",dl);
+}
+// 优先从服务端「物品ID清单.txt」载入（含中文名），失败则用内置
+fetch("/api/ids").then(r=>r.json()).then(d=>{
+  if(d.ok && d.items && d.items.length){ ITEMS = d.items; }
+  buildDatalist();
+}).catch(()=>buildDatalist());
+
+(function(){
+  let h="<b>附魔ID对照</b>（输入格式 id:等级，如 9:5 = 锋利V）<br>";
+  Object.keys(ENCH).sort((a,b)=>+a-+b).forEach(id=>h+=`<span style="display:inline-block;width:90px">${id}=${ENCH[id]}</span>`);
+  document.getElementById("ench_ref").innerHTML=h;
+})();
+
+let curMode="command";
+const APP_VER="__VER__";
+function esc(s){return String(s==null?"":s).replace(/\\/g,'&#92;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function $(id){return document.getElementById(id);}
+function show(m,c){msg.innerHTML=`<div class="msg ${c}">${m}</div>`;}
+
+function switchMode(m){
+  curMode=m;
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.dataset.mode===m));
+  document.querySelectorAll('.panel').forEach(p=>p.style.display='none');
+  $('panel_'+m).style.display='';
+}
+
+// ===== 命令盒 =====
+function addCmdRow(body,mname,command){
+  const tr=document.createElement("tr");
+  tr.innerHTML=`<td><input type="text" class="mn" placeholder="§a矿车名" value="${esc(mname||'')}"></td>`
+    +`<td><input type="text" class="cc" placeholder="/give @s deny" value="${esc(command||'')}"></td>`
+    +`<td style="width:36px"><button class="btn sec" style="padding:4px 8px" onclick="this.closest('tr').remove();cUpd();updateColNum(this.closest('.subcard'))">×</button></td>`;
+  body.appendChild(tr); cUpd();
+  const card=body.closest(".subcard");
+  if(card) updateColNum(card);
+}
+function addCell(iname,cmds,lore){
+  const card=document.createElement("div"); card.className="subcard";
+  card.innerHTML=`<div class="toolbar" style="margin:0 0 6px">
+    <input type="text" class="iname" placeholder="L2 物品名" value="${esc(iname||'')}" style="flex:1">
+    <button class="btn sec" style="padding:5px 10px" onclick="this.closest('.subcard').remove();cUpd()">删除格子</button></div>
+    <input type="text" class="ilore" placeholder="L2 Lore（可选）" value="${esc(lore||'')}" style="width:100%;margin-bottom:6px">
+    <div class="collapse-head" style="display:flex;align-items:center;gap:6px;cursor:pointer;user-select:none" onclick="toggleCol(this)">
+      <span class="col-arrow" style="display:inline-block;min-width:22px;color:var(--mut);font-size:11px">[-]</span>
+      <span style="font-size:12px;color:var(--mut)">命令列表（L3 矿车）</span>
+      <span class="col-num" style="font-size:11px;color:var(--mut)"></span>
+    </div>
+    <div class="col-body">
+    <table style="width:100%"><thead><tr><th style="width:30%">L3 矿车名</th><th>命令</th><th style="width:36px"></th></tr></thead><tbody class="cbody"></tbody></table>
+    <button class="btn sec" style="margin-top:5px;padding:5px 10px" onclick="addCmdRow(this.closest('.col-body').querySelector('.cbody'))">加命令</button>
+    </div>`;
+  c_cells.appendChild(card);
+  const body=card.querySelector(".cbody");
+  (cmds||[]).forEach(c=>addCmdRow(body,c.mname,c.command));
+  if(!(cmds&&cmds.length)) addCmdRow(body,"","");
+  cUpd();
+  updateColNum(card);
+}
+function toggleCol(head){
+  const body=head.nextElementSibling;
+  const arrow=head.querySelector(".col-arrow");
+  if(body.style.display==="none"){body.style.display="";arrow.textContent="[-]";}
+  else{body.style.display="none";arrow.textContent="[+]";}
+}
+function updateColNum(card){
+  const n=card.querySelectorAll(".cbody tr").length;
+  const span=card.querySelector(".col-num");
+  if(span) span.textContent="("+n+")";
+}
+function cUpd(){
+  const n=c_cells.querySelectorAll(".subcard").length;
+  let mc=0; c_cells.querySelectorAll(".cbody tr").forEach(()=>mc++);
+  c_count.textContent=n+" 格 · "+mc+" 矿车";
+}
+function cCollect(){
+  const items=[];
+  c_cells.querySelectorAll(".subcard").forEach(card=>{
+    const iname=card.querySelector(".iname").value.trim();
+    const lore=card.querySelector(".ilore").value;
+    const cmds=[];
+    card.querySelectorAll(".cbody tr").forEach(tr=>{
+      const m=tr.querySelector(".mn").value.trim(),c=tr.querySelector(".cc").value.trim();
+      if(c) cmds.push({mname:m,command:c});
+    });
+    if(cmds.length) items.push({iname,lore,cmds});
+  });
+  return items;
+}
+
+// ===== 装备盒 =====
+const ENCH_LIST = Object.keys(ENCH).map(k=>({id:k, cn:ENCH[k]})).sort((a,b)=>(+a.id)-(+b.id));
+function addEnchRow(box, id, lvl){
+  const row=document.createElement("div");
+  row.className="en-row";
+  row.style.cssText="display:flex;gap:6px;margin-bottom:6px";
+  const opts=ENCH_LIST.map(e=>`<option value="${e.id}" ${String(e.id)===String(id)?"selected":""}>${esc(e.cn)} (${e.id})</option>`).join("");
+  row.innerHTML=`<select class="en-id" style="flex:1;min-width:0">${opts}</select>
+    <input type="number" class="en-lvl" title="等级" value="${lvl!=null?lvl:1}" style="width:62px;flex:none">
+    <button class="btn sec" style="padding:4px 9px;flex:none" onclick="this.parentElement.remove()">×</button>`;
+  box.appendChild(row);
+}
+function addEq(o){
+  o=o||{};
+  const card=document.createElement("div"); card.className="subcard";
+  card.innerHTML=`
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+      <span style="font-size:12px;color:var(--mut)">一件装备</span>
+      <button class="btn sec" style="padding:4px 10px" onclick="this.closest('.subcard').remove();eUpd()">删除</button>
+    </div>
+    <label style="font-size:11px">物品 ID</label>
+    <div style="display:flex;gap:6px;margin-bottom:8px">
+      <input type="text" class="nm" list="item_ids" placeholder="minecraft:netherite_helmet" value="${esc(o.name||'')}" style="flex:1;min-width:0">
+      <button class="btn sec" style="padding:6px 10px;flex:none" onclick="openItemPicker(this.previousElementSibling)">选</button>
+      <input type="number" class="slot" title="格子(0-26)" placeholder="格" value="${o.slot!=null?o.slot:''}" style="width:56px;flex:none">
+      <input type="number" class="cnt" title="数量" placeholder="数量" value="${o.count!=null?o.count:1}" style="width:56px;flex:none">
+    </div>
+    <label style="font-size:11px">附魔（可加多个）</label>
+    <div class="ench-box"></div>
+    <button class="btn sec" style="margin:2px 0 8px;padding:5px 10px" onclick="addEnchRow(this.previousElementSibling)">添加附魔</button>
+    <label style="font-size:11px">显示名（可选）</label>
+    <input type="text" class="dn" placeholder="例：§c神剑" value="${esc(o.iname||'')}" style="width:100%;margin-bottom:8px">
+    <label style="font-size:11px">Lore 物品描述（每行一条，可选）</label>
+    <textarea class="lore" rows="2" placeholder="例：§6神器&#10;§7攻击力 +100" style="width:100%">${esc(o.lore||'')}</textarea>`;
+  e_cells.appendChild(card);
+  // 填入已有附魔（o.ench 形如 "9:5,0:4"）
+  const ebox=card.querySelector(".ench-box");
+  String(o.ench||"").split(",").forEach(p=>{
+    p=p.trim(); if(p.includes(":")){ const a=p.split(":"); addEnchRow(ebox, a[0].trim(), a[1].trim()); }
+  });
+  eUpd();
+}
+function eUpd(){ e_count.textContent=e_cells.querySelectorAll(".subcard").length+" 件"; }
+function eCollect(){
+  const items=[];
+  e_cells.querySelectorAll(".subcard").forEach(card=>{
+    const name=card.querySelector(".nm").value.trim();
+    if(!name) return;
+    const ench=[];
+    card.querySelectorAll(".en-row").forEach(r=>{
+      const id=r.querySelector(".en-id").value;
+      const lvl=r.querySelector(".en-lvl").value;
+      if(id!=="") ench.push(id+":"+(lvl||1));
+    });
+    items.push({name,slot:card.querySelector(".slot").value,count:card.querySelector(".cnt").value,
+      ench:ench.join(","),iname:card.querySelector(".dn").value.trim(),
+      lore:card.querySelector(".lore").value});
+  });
+  return items;
+}
+
+// ===== 村民鱼桶 =====
+function addTrade(o){
+  o=o||{};
+  const card=document.createElement("div"); card.className="subcard";
+  card.innerHTML=`
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+      <span style="font-size:12px;color:var(--mut)">一笔交易</span>
+      <button class="btn sec" style="padding:4px 10px" onclick="this.closest('.subcard').remove();vUpd()">删除</button>
+    </div>
+    <label style="font-size:11px">买入物（玩家给村民的物品）</label>
+    <div style="display:flex;gap:6px;margin-bottom:8px">
+      <input type="text" class="buy" list="item_ids" placeholder="minecraft:dirt" value="${esc(o.buy||'')}" style="flex:1;min-width:0">
+      <button class="btn sec" style="padding:6px 10px;flex:none" onclick="openItemPicker(this.previousElementSibling)">选</button>
+      <input type="number" class="bc" title="买入数量" placeholder="数量" value="${o.buy_count!=null?o.buy_count:1}" style="width:70px;flex:none">
+    </div>
+    <label style="font-size:11px">卖出物（村民给玩家的物品）</label>
+    <div style="display:flex;gap:6px">
+      <input type="text" class="sell" list="item_ids" placeholder="minecraft:netherite_block" value="${esc(o.sell||'')}" style="flex:1;min-width:0">
+      <button class="btn sec" style="padding:6px 10px;flex:none" onclick="openItemPicker(this.previousElementSibling)">选</button>
+      <input type="number" class="sc" title="卖出数量" placeholder="数量" value="${o.sell_count!=null?o.sell_count:64}" style="width:70px;flex:none">
+    </div>`;
+  v_cells.appendChild(card); vUpd();
+}
+function vUpd(){ v_count_lbl.textContent=v_cells.querySelectorAll(".subcard").length+" 笔"; }
+function vCollect(){
+  const trades=[];
+  v_cells.querySelectorAll(".subcard").forEach(card=>{
+    const buy=card.querySelector(".buy").value.trim();
+    const sell=card.querySelector(".sell").value.trim();
+    if(buy&&sell) trades.push({buy,buy_count:card.querySelector(".bc").value,sell,sell_count:card.querySelector(".sc").value});
+  });
+  return trades;
+}
+
+// ===== 配置收集 =====
+function cfg(){
+  const v=$("version").value;
+  if(curMode==="command") return {mode:"command",
+    box_name:c_box_name.value,box_lore:c_box_lore.value,items:cCollect(),
+    direction:c_direction.value,count:c_count_top.value,ticking:c_ticking.value,radius:c_radius.value,
+    tick_world:c_tick_world.checked,unbreakable:c_unbreakable.checked,
+    keep_on_death:c_keep.checked,ench:c_ench.checked,item_lock:c_lock.checked,version:v};
+  if(curMode==="equipment") return {mode:"equipment",
+    box_name:e_box_name.value,direction:e_direction.value,count:e_count_top.value,
+    unbreakable:e_unbreakable.checked,keep_on_death:e_keep.checked,item_lock:e_lock.checked,
+    items:eCollect(),version:v};
+  return {mode:"villager",bucket_name:v_bucket.value,box_name:v_box_name.value,
+    box_lore:v_box_lore.value,count:v_count.value,maxUses:v_maxUses.value,
+    traderExp:v_traderExp.value,tickDelay:v_tickDelay.value,definitions:v_definitions.value,
+    trades:vCollect(),version:v};
+}
+
+// 前端日志上报
+function flog(msg){
+  try{ fetch("/api/log",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({msg})}); }catch(e){}
+}
+
+// 前端请求封装：区分网络错误 / HTTP 错误
+async function api(path, body){
+  let r;
+  try{
+    r = await fetch(path, body ? {method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)} : undefined);
+  }catch(e){
+    // 网络层失败（连不上后端）
+    throw new Error("连不上后端服务器。请确认：\n1) Python 脚本正在运行（窗口有「NBT 生成器 v"+APP_VER+" 已启动」）\n2) 浏览器地址是 " + location.origin + "\n3) 没按到停止键/脚本没报错退出");
+  }
+  let d;
+  try{ d = await r.json(); }
+  catch(e){ throw new Error("服务器返回异常（HTTP "+r.status+"）"); }
+  return d;
+}
+
+// 启动自检：探测后端是否在线
+window.addEventListener("load", async()=>{
+  try{
+    const r = await fetch("/api/log?n=1", {cache:"no-store"});
+    if(r.ok){ console.log("后端在线"); }
+  }catch(e){
+    show("连不上后端（"+location.origin+"）。请确认脚本在运行、端口一致。","err");
+  }
+});
+
+// ===== 导入载入 =====
+function loadModel(m){
+  switchMode(m.mode||"command");
+  if(m.mode==="command"){
+    c_box_name.value=m.box_name||""; c_box_lore.value=m.box_lore||"";
+    c_direction.value=m.direction||"north"; c_count_top.value=m.count||64;
+    c_ticking.value=m.ticking||60; c_radius.value=m.radius||4;
+    c_tick_world.checked=!!m.tick_world; c_ench.checked=!!m.ench;
+    c_keep.checked=!!m.keep_on_death; c_lock.checked=!!m.item_lock;
+    c_unbreakable.checked=!!m.unbreakable;
+    c_cells.innerHTML=""; (m.items||[]).forEach(it=>addCell(it.iname,it.cmds,it.lore));
+    flog("loadModel command: "+((m.items||[]).length)+" 格");
+  } else if(m.mode==="equipment"){
+    e_box_name.value=m.box_name||""; e_direction.value=m.direction||"north";
+    e_count_top.value=m.count||64; e_unbreakable.checked=!!m.unbreakable;
+    e_keep.checked=!!m.keep_on_death; e_lock.checked=!!m.item_lock;
+    e_cells.innerHTML=""; (m.items||[]).forEach(it=>addEq(it));
+    flog("loadModel equipment: "+((m.items||[]).length)+" 件");
+  } else if(m.mode==="villager"){
+    v_bucket.value=m.bucket_name||"minecraft:cod_bucket";
+    v_box_name.value=m.box_name||""; v_box_lore.value=m.box_lore||"";
+    v_count.value=m.count||1; v_maxUses.value=m.maxUses||1000;
+    v_traderExp.value=m.traderExp||1145; v_tickDelay.value=m.tickDelay||250;
+    v_definitions.value=m.definitions||"+wandering_trader";
+    v_cells.innerHTML=""; (m.trades||[]).forEach(t=>addTrade(t));
+  }
+  show("已载入："+m.mode,"ok");
+}
+async function parseImport(text){
+  try{
+    const d = await api("/api/parse", {snbt:text});
+    if(d.ok) loadModel(d.model);
+    else show("解析失败: "+d.error,"err");
+  }catch(e){show(""+e.message,"err");}
+}
+do_import.onclick=()=>{const t=import_text.value.trim(); if(!t){show("请先粘贴 NBT","err");return;} parseImport(t);};
+
+// 初始示例
+addCell("§r§f§aRunAway§e给标签蜂",[{mname:"§a放晴",command:"/weather clear"}]);
+addEq({slot:0,name:"minecraft:netherite_helmet",count:1,ench:"5:3,0:4"});
+addTrade({buy:"minecraft:dirt",buy_count:1,sell:"minecraft:netherite_block",sell_count:64});
+
+// ===== 生成 =====
+let lastOut="",lastName="";
+gen.onclick=async()=>{
+  gen.disabled=true;
+  try{
+    const d = await api("/api/generate", cfg());
+    if(d.ok){out.textContent=d.snbt;lastOut=d.snbt;
+      lastName=(cfg().box_name||"生成").replace(/§./g,"").replace(/[\\/:*?\"<>|]/g,"")+".txt";
+      stat.textContent=""+d.count+" · "+d.snbt.length+" 字节";
+      dl.disabled=false;cp.disabled=false;show("生成成功","ok");
+    }else{stat.textContent="";show(""+d.error,"err");}
+  }catch(e){show(""+e.message,"err");}
+  gen.disabled=false;
+};
+// 保存文本：安卓 App 内走原生桥，浏览器内走 Blob 下载
+function saveText(name, text){
+  if(window.AndroidBridge && AndroidBridge.saveFile){
+    try{ const p=AndroidBridge.saveFile(name, text); show("已保存: "+p, "ok"); return; }catch(e){}
+  }
+  const b=new Blob([text],{type:"text/plain;charset=utf-8"});
+  const a=document.createElement("a");a.href=URL.createObjectURL(b);a.download=name;a.click();
+}
+// 复制文本：优先原生桥
+async function copyOut(text){
+  if(window.AndroidBridge && AndroidBridge.copyText){
+    try{ AndroidBridge.copyText(text); show("已复制","ok"); return; }catch(e){}
+  }
+  try{ await navigator.clipboard.writeText(text); show("已复制","ok"); }
+  catch(e){ show("复制失败","err"); }
+}
+dl.onclick=()=>saveText(lastName||"nbt.txt", lastOut);
+cp.onclick=()=>copyOut(lastOut);
+
+// 导出日志
+async function exportLog(){
+  try{
+    const d = await api("/api/log?n=2000");
+    if(!d.ok){show("读取日志失败: "+(d.error||""),"err");return;}
+    const ts=new Date().toISOString().slice(0,19).replace(/[:T]/g,"-");
+    saveText("nbt_log_"+ts+".txt", d.log||"");
+  }catch(e){show(e.message,"err");}
+}
+// ===== 物品ID 选择器（自建，兼容手机浏览器）=====
+let pickerTarget=null;
+function openItemPicker(inp){
+  pickerTarget=inp;
+  document.getElementById('picker').style.display='';
+  const s=document.getElementById('picker_search');
+  s.value=''; renderPicker('');
+  setTimeout(()=>s.focus(),50);
+}
+function renderPicker(q){
+  q=(q||'').trim().toLowerCase();
+  const list=document.getElementById('picker_list');
+  let items=ITEMS.filter(it=>(it.id||'').toLowerCase().includes(q) || (it.cn||'').includes(q));
+  if(!q) items=items.slice(0,200);
+  list.innerHTML = items.length
+    ? items.map(it=>{
+        const cn = it.cn ? `<span style="color:var(--txt)">${esc(it.cn)}</span> ` : "";
+        return `<div onclick="pickItem(this)" data-id="${it.id}" style="padding:9px 10px;border-bottom:1px solid var(--border);cursor:pointer;font-size:13px">${cn}<span style="color:var(--mut);font-size:12px">${it.id}</span></div>`;
+      }).join('')
+    : '<div style="padding:12px;color:var(--mut)">无匹配</div>';
+}
+function pickItem(el){
+  const id=el.getAttribute('data-id');
+  if(pickerTarget){ pickerTarget.value=id; pickerTarget.dispatchEvent(new Event('input')); }
+  closePicker();
+}
+function closePicker(){ document.getElementById('picker').style.display='none'; }
+document.addEventListener('keyup',e=>{ if(e.key==='Escape') closePicker(); });
+</script>
+<!-- 物品ID 选择器弹窗 -->
+<div id="picker" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:100;padding:14px" onclick="if(event.target===this)closePicker()">
+  <div style="max-width:540px;margin:6vh auto 0;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;max-height:80vh;display:flex;flex-direction:column">
+    <div style="display:flex;gap:8px;margin-bottom:8px">
+      <input id="picker_search" placeholder="搜索：中文名 或 英文ID（如 剑 / sword）" oninput="renderPicker(this.value)" style="flex:1">
+      <button class="btn sec" onclick="closePicker()">关闭</button>
+    </div>
+    <div id="picker_list" style="overflow:auto;flex:1;background:#15171d;border-radius:8px"></div>
+  </div>
+</div>
+</body></html>

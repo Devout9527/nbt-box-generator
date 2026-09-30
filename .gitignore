@@ -1,0 +1,30 @@
+# Gradle
+.gradle/
+build/
+app/build/
+
+# 本地配置（含本机 SDK 路径，勿提交）
+local.properties
+
+# 签名密钥（切勿提交）
+*.jks
+*.keystore
+keystore.properties
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# 系统
+.DS_Store
+Thumbs.db
+
+# 打包产物
+包发布/
+*.apk
+
+# 其它
+captures/
+.externalNativeBuild/
+.cxx/

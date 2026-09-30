@@ -1,0 +1,176 @@
+# Minecraft 常用物品 ID 清单（格式：ID 空格 中文名）
+# 用途：nbt_gen 网页 UI 的物品选择器 / 自动补全
+# 来源：PrismarineJS/minecraft-data + Minecraft 官方中文语言文件
+# 共 156 条
+
+# ===== 装备（盔甲） =====
+minecraft:netherite_helmet 下界合金头盔
+minecraft:netherite_chestplate 下界合金胸甲
+minecraft:netherite_leggings 下界合金护腿
+minecraft:netherite_boots 下界合金靴子
+minecraft:diamond_helmet 钻石头盔
+minecraft:diamond_chestplate 钻石胸甲
+minecraft:diamond_leggings 钻石护腿
+minecraft:diamond_boots 钻石靴子
+minecraft:iron_helmet 铁头盔
+minecraft:iron_chestplate 铁胸甲
+minecraft:iron_leggings 铁护腿
+minecraft:iron_boots 铁靴子
+minecraft:golden_helmet 金头盔
+minecraft:golden_chestplate 金胸甲
+minecraft:golden_leggings 金护腿
+minecraft:golden_boots 金靴子
+minecraft:leather_helmet 皮革帽子
+minecraft:leather_chestplate 皮革外套
+minecraft:leather_leggings 皮革裤子
+minecraft:leather_boots 皮革靴子
+minecraft:turtle_helmet 海龟壳
+
+# ===== 工具武器 =====
+minecraft:netherite_sword 下界合金剑
+minecraft:netherite_pickaxe 下界合金镐
+minecraft:netherite_axe 下界合金斧
+minecraft:netherite_shovel 下界合金锹
+minecraft:netherite_hoe 下界合金锄
+minecraft:diamond_sword 钻石剑
+minecraft:diamond_pickaxe 钻石镐
+minecraft:diamond_axe 钻石斧
+minecraft:diamond_shovel 钻石锹
+minecraft:diamond_hoe 钻石锄
+minecraft:iron_sword 铁剑
+minecraft:iron_pickaxe 铁镐
+minecraft:iron_axe 铁斧
+minecraft:iron_shovel 铁锹
+minecraft:iron_hoe 铁锄
+minecraft:golden_sword 金剑
+minecraft:golden_pickaxe 金镐
+minecraft:golden_axe 金斧
+minecraft:golden_shovel 金锹
+minecraft:golden_hoe 金锄
+minecraft:stone_sword 石剑
+minecraft:stone_pickaxe 石镐
+minecraft:stone_axe 石斧
+minecraft:stone_shovel 石锹
+minecraft:stone_hoe 石锄
+minecraft:wooden_sword 木剑
+minecraft:wooden_pickaxe 木镐
+minecraft:wooden_axe 木斧
+minecraft:wooden_shovel 木锹
+minecraft:wooden_hoe 木锄
+minecraft:bow 弓
+minecraft:crossbow 弩
+minecraft:trident 三叉戟
+minecraft:mace 重锤
+minecraft:shield 盾牌
+minecraft:flint_and_steel 打火石
+minecraft:fishing_rod 钓鱼竿
+minecraft:shears 剪刀
+
+# ===== 材料 =====
+minecraft:netherite_block 下界合金块
+minecraft:diamond_block 钻石块
+minecraft:emerald_block 绿宝石块
+minecraft:gold_block 金块
+minecraft:iron_block 铁块
+minecraft:coal_block 煤炭块
+minecraft:redstone_block 红石块
+minecraft:lapis_block 青金石块
+minecraft:netherite_ingot 下界合金锭
+minecraft:netherite_scrap 下界合金碎片
+minecraft:diamond 钻石
+minecraft:emerald 绿宝石
+minecraft:gold_ingot 金锭
+minecraft:iron_ingot 铁锭
+minecraft:coal 煤炭
+minecraft:redstone 红石粉
+minecraft:lapis_lazuli 青金石
+minecraft:quartz 下界石英
+minecraft:amethyst_shard 紫水晶碎片
+minecraft:grass_block 草方块
+minecraft:moving_block 移动方块
+minecraft:command_block 命令方块
+minecraft:hay_block 干草捆
+minecraft:slime_block 黏液块
+minecraft:honey_block 蜂蜜块
+
+# ===== 食物 =====
+minecraft:golden_apple 金苹果
+minecraft:enchanted_golden_apple 附魔金苹果
+minecraft:golden_carrot 金胡萝卜
+minecraft:bread 面包
+minecraft:cooked_beef 牛排
+minecraft:cooked_porkchop 熟猪排
+minecraft:cooked_mutton 熟羊肉
+minecraft:cooked_chicken 熟鸡肉
+minecraft:cooked_cod 熟鳕鱼
+minecraft:cooked_salmon 熟鲑鱼
+
+# ===== 桶 =====
+minecraft:cod_bucket 鳕鱼桶
+minecraft:salmon_bucket 鲑鱼桶
+minecraft:tropical_fish_bucket 热带鱼桶
+minecraft:axolotl_bucket 美西螈桶
+minecraft:pufferfish_bucket 河豚桶
+minecraft:water_bucket 水桶
+minecraft:lava_bucket 熔岩桶
+minecraft:milk_bucket 奶桶
+minecraft:powder_snow_bucket 细雪桶
+
+# ===== 特殊物品 =====
+minecraft:totem_of_undying 不死图腾
+minecraft:firework_rocket 烟花火箭
+minecraft:arrow 箭
+minecraft:spectral_arrow 光灵箭
+minecraft:tipped_arrow 药箭
+minecraft:potion 药水
+minecraft:splash_potion 喷溅药水
+minecraft:lingering_potion 滞留药水
+minecraft:experience_bottle 附魔之瓶
+minecraft:ender_pearl 末影珍珠
+minecraft:ender_eye 末影之眼
+minecraft:beacon 信标
+minecraft:conduit 潮涌核心
+minecraft:nether_star 下界之星
+minecraft:dragon_egg 龙蛋
+minecraft:white_bundle 白色收纳袋
+minecraft:name_tag 命名牌
+minecraft:saddle 鞍
+minecraft:lead 拴绳
+minecraft:compass 指南针
+minecraft:clock 时钟
+minecraft:map 空地图
+minecraft:book 书
+minecraft:writable_book 书与笔
+minecraft:written_book 成书
+minecraft:ender_chest 末影箱
+
+# ===== 方块 =====
+minecraft:dirt 泥土
+minecraft:coarse_dirt 砂土
+minecraft:stone 石头
+minecraft:cobblestone 圆石
+minecraft:bedrock 基岩
+minecraft:obsidian 黑曜石
+minecraft:crying_obsidian 哭泣的黑曜石
+minecraft:beehive 蜂箱
+minecraft:chest 箱子
+minecraft:barrel 木桶
+minecraft:shulker_box 潜影盒
+minecraft:anvil 铁砧
+minecraft:enchanting_table 附魔台
+minecraft:crafting_table 工作台
+minecraft:furnace 熔炉
+minecraft:piston 活塞
+minecraft:mob_spawner 刷怪笼
+minecraft:sand 沙子
+minecraft:gravel 沙砾
+minecraft:glass 玻璃
+minecraft:oak_planks 橡木木板
+minecraft:log 原木(橡木)
+minecraft:tnt TNT
+minecraft:water 水
+minecraft:lava 熔岩
+minecraft:sponge 海绵
+
+# ===== 其他 =====
+minecraft:elytra 鞘翅

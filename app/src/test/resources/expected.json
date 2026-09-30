@@ -1,0 +1,82 @@
+{
+ "cmd": {
+  "cfg": {
+   "mode": "command",
+   "box_name": "§a盒",
+   "box_lore": "说明1\n说明2",
+   "direction": "north",
+   "count": 64,
+   "ticking": 60,
+   "radius": 4,
+   "tick_world": true,
+   "item_lock": false,
+   "items": [
+    {
+     "iname": "格0",
+     "lore": "",
+     "cmds": [
+      {
+       "mname": "放晴",
+       "command": "/weather clear"
+      },
+      {
+       "mname": "雷",
+       "command": "/summon lightning_bolt"
+      }
+     ]
+    }
+   ],
+   "unbreakable": true,
+   "keep_on_death": true,
+   "ench": true,
+   "version": 18168865
+  },
+  "out": "{Block:{name:\"minecraft:chest\",states:{\"minecraft:cardinal_direction\":\"north\"},val:2s,version:18168865},Count:64b,Damage:0s,Name:\"minecraft:chest\",WasPickedUp:0b,tag:{Damage:0,ItemCustomTips:\"\",ItemExtraID:\"\",ModId:\"\",ModItemId:\"\",CustomName:\"§a盒\",Items:[{Block:{name:\"minecraft:moving_block\",states:{},val:0s,version:18168865},CanDestroy:[\"minecraft:grass_block\",\"minecraft:dirt\",\"minecraft:beehive\",\"minecraft:coarse_dirt\"],CanPlaceOn:[\"minecraft:grass_block\",\"minecraft:dirt\",\"minecraft:beehive\",\"minecraft:coarse_dirt\"],Count:64b,Damage:0s,Name:\"minecraft:moving_block\",Slot:0b,WasPickedUp:0b,tag:{Damage:0,ItemCustomTips:\"\",ItemExtraID:\"\",ModId:\"\",ModItemId:\"\",RepairCost:0,movingBlock:{name:\"minecraft:beehive\",states:{},val:0s,version:18168865},movingEntity:{Occupants:[{ActorIdentifier:\"minecraft:command_block_minecart<>\",SaveData:{Command:\"/weather clear\",CustomName:\"放晴\",Persistent:1b,Pos:[],Ticking:60s,definitions:[\"+minecraft:bee\",\"+##netease::minecraft:tick_world\"],identifier:\"minecraft:command_block_minecart\",ignoreHurt:1b,neteaseComponents:{\"minecraft:tick_world\":\"{\\\"never_despawn\\\": true, \\\"radius\\\": 4}\"}},TicksLeftToStay:0b},{ActorIdentifier:\"minecraft:command_block_minecart<>\",SaveData:{Command:\"/summon lightning_bolt\",CustomName:\"雷\",Persistent:1b,Pos:[],Ticking:60s,definitions:[\"+minecraft:bee\",\"+##netease::minecraft:tick_world\"],identifier:\"minecraft:command_block_minecart\",ignoreHurt:1b,neteaseComponents:{\"minecraft:tick_world\":\"{\\\"never_despawn\\\": true, \\\"radius\\\": 4}\"}},TicksLeftToStay:0b}],id:\"Beehive\"},pistonPosX:0,pistonPosY:0,pistonPosZ:0,Unbreakable:1b,display:{Name:\"格0\",ShowInHand:1b},ench:[{id:28s,lvl:1s}],\"minecraft:item_lock\":0b,\"minecraft:keep_on_death\":1b}}],display:{Lore:[\"说明1\",\"说明2\"],Name:\"§a盒\",ShowInHand:1b},ench:[{id:27s,lvl:32767s},{id:28s,lvl:32767s}],\"minecraft:item_lock\":0b,\"minecraft:keep_on_death\":1b}}"
+ },
+ "equip": {
+  "cfg": {
+   "mode": "equipment",
+   "box_name": "§l装备",
+   "direction": "north",
+   "count": 64,
+   "unbreakable": true,
+   "keep_on_death": true,
+   "item_lock": false,
+   "version": 18168865,
+   "items": [
+    {
+     "name": "minecraft:netherite_helmet",
+     "slot": 0,
+     "count": 1,
+     "ench": "5:3,0:4",
+     "iname": "§c头盔",
+     "lore": "神器\n耐久高"
+    }
+   ]
+  },
+  "out": "{Block:{name:\"minecraft:chest\",states:{\"minecraft:cardinal_direction\":\"north\"},val:2s,version:18168865},Count:64b,Damage:0s,Name:\"minecraft:chest\",WasPickedUp:0b,tag:{Items:[{Count:1b,Damage:0s,Name:\"minecraft:netherite_helmet\",Slot:0b,WasPickedUp:0b,tag:{Damage:0,ItemCustomTips:\"\",ItemExtraID:\"\",ModId:\"\",ModItemId:\"\",Unbreakable:1b,display:{Lore:[\"神器\",\"耐久高\"],Name:\"§c头盔\",ShowInHand:1b},ench:[{id:5s,lvl:3s,modEnchant:\"\"},{id:0s,lvl:4s,modEnchant:\"\"}],\"minecraft:item_lock\":0b,\"minecraft:keep_on_death\":1b}}],RepairCost:0,display:{Name:\"§l装备\"}}}"
+ },
+ "vill": {
+  "cfg": {
+   "mode": "villager",
+   "bucket_name": "minecraft:cod_bucket",
+   "box_name": "§6村民",
+   "box_lore": "矿物",
+   "count": 1,
+   "maxUses": 1000,
+   "traderExp": 1145,
+   "tickDelay": 250,
+   "definitions": "+wandering_trader",
+   "version": 18168865,
+   "trades": [
+    {
+     "buy": "minecraft:dirt",
+     "buy_count": 1,
+     "sell": "minecraft:netherite_block",
+     "sell_count": 64
+    }
+   ]
+  },
+  "out": "{Count:1b,Damage:0s,Name:\"minecraft:cod_bucket\",WasPickedUp:0b,tag:{ExecuteOnFirstTick:1b,Offers:{Recipes:[{buyA:{Count:1b,Damage:0s,Name:\"minecraft:dirt\",WasPickedUp:0b},buyCountA:1,buyCountB:0,demand:0,maxUses:1000,priceMultiplierA:0.05f,priceMultiplierB:0.0f,rewardExp:1b,sell:{Count:64b,Damage:0s,Name:\"minecraft:netherite_block\",WasPickedUp:0b},tier:0,traderExp:1145,uses:0}]},Pos:[-7.05f,4.0f,-0.8f],Tags:[\"\",\"\"],TickDelay:250,Ticking:0b,definitions:[\"+wandering_trader\"],display:{Lore:[\"矿物\"],Name:\"§6村民\"}}}"
+ }
+}
