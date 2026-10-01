@@ -65,7 +65,6 @@ td input{width:100%}
   <div class="toolbar" style="margin-top:6px">
     <button class="btn sec" id="do_import">解析并载入</button>
     <button class="btn sec" id="pick_saved">从目录选择文件</button>
-    <button class="btn sec" id="dl_raw" style="padding:4px 8px;font-size:11px;color:var(--mut)" disabled>导出原NBT</button>
   </div>
   <div id="saved_list" style="margin-top:6px"></div>
 </div>
@@ -433,6 +432,7 @@ function addEq(o){
       <button class="btn sec" style="padding:5px 10px" onclick="pickItemNbt(this)">用自定义NBT（从文件选）</button>
       <span class="nbt-badge" style="font-size:11px;color:var(--ok);display:none"></span>
       <button class="btn sec" style="padding:5px 10px;display:none" onclick="clearItemNbt(this)">清除NBT</button>
+      <button class="btn sec" style="padding:2px 8px;font-size:11px;color:var(--mut);display:none" onclick="exportItemNbt(this)">导出</button>
     </div>
     <textarea class="item_nbt" style="display:none"></textarea>`;
   e_cells.appendChild(card);
@@ -459,8 +459,14 @@ function pickItemNbt(btn){
     const b=card.querySelector(".nbt-badge");
     b.textContent = "已附加: " + name; b.style.display="";
     b.nextElementSibling.style.display="";
+    if(b.nextElementSibling.nextElementSibling) b.nextElementSibling.nextElementSibling.style.display="";
     show("已附加 "+name,"ok");
   });
+}
+function exportItemNbt(btn){
+  const card=btn.closest(".subcard");
+  const t=card.querySelector(".item_nbt").value;
+  if(t) saveText("自定义NBT.txt", t); else show("没有自定义NBT","err");
 }
 function clearItemNbt(btn){
   const card=btn.closest(".subcard");
@@ -468,6 +474,7 @@ function clearItemNbt(btn){
   const b=card.querySelector(".nbt-badge");
   b.textContent=""; b.style.display="none";
   btn.style.display="none";
+  if(b.nextElementSibling.nextElementSibling) b.nextElementSibling.nextElementSibling.style.display="none";
 }
 function eUpd(){ e_count.textContent=e_cells.querySelectorAll(".subcard").length+" 件"; }
 function eCollect(){
@@ -671,11 +678,7 @@ function loadModel(m){
 async function parseImport(text){
   try{
     const d = await api("/api/parse", {snbt:text});
-    if(d.ok){
-      lastRawNbt=text;
-      const rb=document.getElementById('dl_raw'); if(rb) rb.disabled=false;
-      loadModel(d.model);
-    }
+    if(d.ok) loadModel(d.model);
     else show("解析失败: "+d.error,"err");
   }catch(e){show(""+e.message,"err");}
 }
@@ -712,8 +715,7 @@ pick_saved.onclick=()=>{
 // 初始示例见脚本末尾（避免 const 暂时性死区）
 
 // ===== 生成 =====
-let lastOut="",lastName="",lastRawNbt="";
-dl_raw.onclick=()=>saveText("原始NBT.txt", lastRawNbt);
+let lastOut="",lastName="";
 gen.onclick=async()=>{
   gen.disabled=true;
   try{
@@ -924,6 +926,7 @@ function buildMobSlots(){
         <button class="btn sec" style="padding:5px 10px" onclick="pickMobNbt(this)">用自定义NBT</button>
         <span class="nbt-badge" style="font-size:11px;color:var(--ok);display:none"></span>
         <button class="btn sec" style="padding:5px 10px;display:none" onclick="clearMobNbt(this)">清除NBT</button>
+        <button class="btn sec" style="padding:2px 8px;font-size:11px;color:var(--mut);display:none" onclick="exportMobNbt(this)">导出</button>
       </div>
       <textarea class="mob_nbt" style="display:none"></textarea>`;
     box.appendChild(card);
@@ -937,13 +940,20 @@ function pickMobNbt(btn){
     card.querySelector(".mob_nbt").value=content;
     const b=card.querySelector(".nbt-badge"); b.textContent="已附加: "+name; b.style.display="";
     b.nextElementSibling.style.display="";
+    if(b.nextElementSibling.nextElementSibling) b.nextElementSibling.nextElementSibling.style.display="";
   });
+}
+function exportMobNbt(btn){
+  const card=btn.closest(".subcard");
+  const t=card.querySelector(".mob_nbt").value;
+  if(t) saveText("自定义NBT.txt", t); else show("没有自定义NBT","err");
 }
 function clearMobNbt(btn){
   const card=btn.closest(".subcard");
   card.querySelector(".mob_nbt").value="";
   const b=card.querySelector(".nbt-badge"); b.textContent=""; b.style.display="none";
   btn.style.display="none";
+  if(b.nextElementSibling.nextElementSibling) b.nextElementSibling.nextElementSibling.style.display="none";
 }
 function setMobSlot(key,data){
   buildMobSlots();
