@@ -42,12 +42,12 @@ td input{width:100%}
 </style></head><body>
 <div class="wrap">
 <h1>NBT 生成器 <span style="font-size:11px;color:var(--mut);font-weight:400">v__VER__</span></h1>
-<div class="sub">网易版 Minecraft · 命令盒 / NBT盒 / 村民鱼桶 三种模式</div>
+<div class="sub">网易版 Minecraft · 命令盒 / NBT盒 / 生物桶 三种模式</div>
 
 <div class="tabs">
   <button class="tab active" data-mode="command" onclick="switchMode('command')">命令盒</button>
   <button class="tab" data-mode="equipment" onclick="switchMode('equipment')">NBT盒</button>
-  <button class="tab" data-mode="villager" onclick="switchMode('villager')">村民鱼桶</button>
+  <button class="tab" data-mode="villager" onclick="switchMode('villager')">生物桶</button>
 </div>
 
 <div class="grid">
@@ -115,7 +115,7 @@ td input{width:100%}
 <div id="ench_ref" style="display:none;background:#15171d;border:1px solid var(--border);border-radius:8px;padding:8px;font-size:11px;color:var(--mut);max-height:200px;overflow:auto"></div>
 </div>
 
-<!-- ============ 村民鱼桶面板 ============ -->
+<!-- ============ 生物桶面板 ============ -->
 <div id="panel_villager" class="panel" style="display:none">
 <div class="two">
 <div class="row"><label>桶类型</label>
@@ -429,7 +429,7 @@ function eCollect(){
   return items;
 }
 
-// ===== 村民鱼桶 =====
+// ===== 生物桶 =====
 function addTrade(o){
   o=o||{};
   const card=document.createElement("div"); card.className="subcard";
@@ -750,6 +750,26 @@ function setBucket(v){
 }
 
 // ===== 实体类型 =====
+// 每个实体类型对应的完整 definitions（含 can_have_equipment 才能穿装备）
+const ENTITY_DEFS = {
+  "+wandering_trader": ["+wandering_trader"],
+  "+minecraft:zombie": ["+minecraft:zombie","+","+minecraft:zombie_adult","+minecraft:can_have_equipment"],
+  "+minecraft:husk": ["+minecraft:husk","+","+minecraft:husk_adult","+minecraft:can_have_equipment"],
+  "+minecraft:drowned": ["+minecraft:drowned","+","+minecraft:can_have_equipment"],
+  "+minecraft:skeleton": ["+minecraft:skeleton","+","+minecraft:can_have_equipment"],
+  "+minecraft:stray": ["+minecraft:stray","+"],
+  "+minecraft:wither_skeleton": ["+minecraft:wither_skeleton","+"],
+  "+minecraft:creeper": ["+minecraft:creeper","+"],
+  "+minecraft:enderman": ["+minecraft:enderman","+"],
+  "+minecraft:blaze": ["+minecraft:blaze","+"],
+  "+minecraft:vindicator": ["+minecraft:vindicator","+","+minecraft:can_have_equipment"],
+  "+minecraft:pillager": ["+minecraft:pillager","+","+minecraft:can_have_equipment"],
+  "+minecraft:evocation_illager": ["+minecraft:evocation_illager","+","+minecraft:can_have_equipment"],
+  "+minecraft:iron_golem": ["+minecraft:iron_golem","+"],
+  "+minecraft:villager_v2": ["+minecraft:villager_v2","+"],
+  "+minecraft:wither": ["+minecraft:wither","+"],
+  "+minecraft:ender_dragon": ["+minecraft:ender_dragon","+"],
+};
 function onEntityChange(){
   const sel=document.getElementById('v_entity');
   document.getElementById('v_entity_custom').style.display = (sel.value==='__custom__')?'':'none';
@@ -757,14 +777,33 @@ function onEntityChange(){
 function currentEntity(){
   const sel=document.getElementById('v_entity');
   if(sel.value==='__custom__') return (document.getElementById('v_entity_custom').value||'').trim() || '+wandering_trader';
-  return sel.value;
+  let defs = ENTITY_DEFS[sel.value] || [sel.value];
+  // 有装备时确保包含 can_have_equipment
+  const eq=collectMobEquip();
+  const hasEq = (eq.mainhand&&eq.mainhand.name)||(eq.offhand&&eq.offhand.name)||
+                (eq.armor||[]).some(a=>a&&a.name);
+  if(hasEq && !defs.includes('+minecraft:can_have_equipment') && sel.value.indexOf('minecraft:')>=0
+     && !['+minecraft:creeper','+minecraft:enderman','+minecraft:blaze','+minecraft:wither','+minecraft:ender_dragon','+minecraft:iron_golem'].includes(sel.value)){
+    defs = defs.concat(['+minecraft:can_have_equipment']);
+  }
+  return defs.join(",");
 }
 function setEntity(v){
   const sel=document.getElementById('v_entity');
-  let opt=[...sel.options].find(o=>o.value===v);
-  if(!opt){ opt=document.createElement('option'); opt.value=v; opt.textContent=v; sel.appendChild(opt); }
-  sel.value=v;
-  document.getElementById('v_entity_custom').style.display='none';
+  const parts=(v||"").split(",").map(x=>x.trim());
+  // 找能识别的实体类型
+  let matched=null;
+  for(const p of parts){ if(ENTITY_DEFS[p]){ matched=p; break; } }
+  if(!matched){ for(const p of parts){ if(p.startsWith("+") && p!=="+"){ matched=p; break; } } }
+  if(matched && (ENTITY_DEFS[matched] || parts.length===1)){
+    let opt=[...sel.options].find(o=>o.value===matched);
+    if(!opt){ opt=document.createElement('option'); opt.value=matched; opt.textContent=matched; sel.appendChild(opt); }
+    sel.value=matched;
+    document.getElementById('v_entity_custom').style.display='none';
+  } else {
+    sel.value='__custom__';
+    const ci=document.getElementById('v_entity_custom'); ci.value=v||''; ci.style.display='';
+  }
 }
 
 // ===== 生物装备槽（4盔甲+主手+副手）=====

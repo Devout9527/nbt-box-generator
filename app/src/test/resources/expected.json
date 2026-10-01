@@ -134,7 +134,7 @@
   "cfg": {
    "mode": "villager",
    "bucket_name": "minecraft:axolotl_bucket",
-   "definitions": "+minecraft:zombie",
+   "definitions": "+minecraft:zombie,+,+minecraft:zombie_adult,+minecraft:can_have_equipment",
    "entity_name": "§6无敌僵尸",
    "version": 18168865,
    "armor": [
@@ -171,6 +171,6 @@
    ],
    "trades": []
   },
-  "out": "{Count:1b,Damage:0s,Name:\"minecraft:axolotl_bucket\",WasPickedUp:0b,tag:{Air:300s,AppendCustomName:1b,CustomName:\"§6无敌僵尸\",CustomNameVisible:1b,Armor:[{Count:1b,Damage:0s,Name:\"minecraft:netherite_helmet\",WasPickedUp:0b,tag:{Damage:0,ench:[{id:0s,lvl:4s},{id:17s,lvl:3s}],display:{Name:\"§c头盔\"}}},{Count:1b,Damage:0s,Name:\"minecraft:netherite_chestplate\",WasPickedUp:0b,tag:{Damage:0,ench:[{id:0s,lvl:4s}]}},{Count:0b,Damage:0s,Name:\"\",WasPickedUp:0b},{Count:0b,Damage:0s,Name:\"\",WasPickedUp:0b}],Mainhand:[{Count:1b,Damage:0s,Name:\"minecraft:netherite_sword\",WasPickedUp:0b,tag:{Damage:0,ench:[{id:9s,lvl:5s}]}}],Offhand:[{Count:1b,Damage:0s,Name:\"minecraft:shield\",WasPickedUp:0b,tag:{Damage:0}}],ActiveEffects:[{Ambient:0b,Amplifier:4b,DisplayOnScreenTextureAnimation:0b,Duration:999999,DurationEasy:999999,DurationHard:999999,DurationNormal:999999,Id:11b,ShowParticles:0b},{Ambient:0b,Amplifier:0b,DisplayOnScreenTextureAnimation:0b,Duration:999999,DurationEasy:999999,DurationHard:999999,DurationNormal:999999,Id:12b,ShowParticles:0b}],definitions:[\"+minecraft:zombie\"]}}"
+  "out": "{Count:1b,Damage:0s,Name:\"minecraft:axolotl_bucket\",WasPickedUp:0b,tag:{Air:300s,AppendCustomName:1b,CustomName:\"§6无敌僵尸\",CustomNameVisible:1b,Armor:[{Count:1b,Damage:0s,Name:\"minecraft:netherite_helmet\",WasPickedUp:0b,tag:{Damage:0,ench:[{id:0s,lvl:4s},{id:17s,lvl:3s}],display:{Name:\"§c头盔\"}}},{Count:1b,Damage:0s,Name:\"minecraft:netherite_chestplate\",WasPickedUp:0b,tag:{Damage:0,ench:[{id:0s,lvl:4s}]}},{Count:0b,Damage:0s,Name:\"\",WasPickedUp:0b},{Count:0b,Damage:0s,Name:\"\",WasPickedUp:0b}],Mainhand:[{Count:1b,Damage:0s,Name:\"minecraft:netherite_sword\",WasPickedUp:0b,tag:{Damage:0,ench:[{id:9s,lvl:5s}]}}],Offhand:[{Count:1b,Damage:0s,Name:\"minecraft:shield\",WasPickedUp:0b,tag:{Damage:0}}],ActiveEffects:[{Ambient:0b,Amplifier:4b,DisplayOnScreenTextureAnimation:0b,Duration:999999,DurationEasy:999999,DurationHard:999999,DurationNormal:999999,Id:11b,ShowParticles:0b},{Ambient:0b,Amplifier:0b,DisplayOnScreenTextureAnimation:0b,Duration:999999,DurationEasy:999999,DurationHard:999999,DurationNormal:999999,Id:12b,ShowParticles:0b}],definitions:[\"+minecraft:zombie\",\"+\",\"+minecraft:zombie_adult\",\"+minecraft:can_have_equipment\"]}}"
  }
 }
