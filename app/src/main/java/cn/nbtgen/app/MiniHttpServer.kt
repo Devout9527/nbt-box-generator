@@ -120,6 +120,10 @@ class MiniHttpServer(
             method == "GET" && p == "/api/ids" ->
                 respond(out, 200, idsJson().toString(), "application/json; charset=utf-8")
 
+            method == "GET" && p == "/api/ver" ->
+                respond(out, 200, org.json.JSONObject().put("ok", true)
+                    .put("ver", version).toString(), "application/json; charset=utf-8")
+
             method == "GET" && p == "/api/log" -> {
                 val n = query.split("&").map { it.split("=") }
                     .firstOrNull { it.size == 2 && it[0] == "n" }?.get(1)?.toIntOrNull() ?: 200

@@ -55,7 +55,7 @@ class MainActivity : Activity() {
             val srv = MiniHttpServer(assets, filesDir, BuildConfig.VERSION_NAME)
             val port = srv.start()
             server = srv
-            wv.loadUrl("http://127.0.0.1:$port/")
+            wv.loadUrl("http://127.0.0.1:$port/?t=" + System.currentTimeMillis())
         } catch (e: Exception) {
             wv.loadData(
                 "<h2>启动失败</h2><p>${e.message}</p>", "text/html", "utf-8")

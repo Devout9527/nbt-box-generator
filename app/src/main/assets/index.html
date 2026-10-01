@@ -45,7 +45,7 @@ td input{width:100%}
 .col-num{font-size:11px;color:var(--mut)}
 </style></head><body>
 <div class="wrap">
-<h1>NBT 生成器 <span style="font-size:13px;color:var(--acc);font-weight:600">v__VER__</span></h1>
+<h1>NBT 生成器 <span id="ver_span" style="font-size:13px;color:var(--acc);font-weight:600">v__VER__</span></h1>
 <div class="sub">网易版 Minecraft · 命令盒 / NBT盒 / 生物桶 三种模式</div>
 
 <div class="tabs">
@@ -930,6 +930,13 @@ function collectEffects(){
 }
 
 // ===== 初始化（放末尾，确保所有 const 已定义）=====
+// 运行时从服务器拉版本号（绕开缓存，确保与 App 版本一致）
+fetch("/api/ver").then(r=>r.json()).then(d=>{
+  if(d && d.ok && d.ver){
+    const e=document.getElementById('ver_span'); if(e) e.textContent="v"+d.ver;
+    document.title="NBT 生成器 v"+d.ver;
+  }
+}).catch(()=>{});
 addCell("§r§f§aRunAway§e给标签蜂",[{mname:"§a放晴",command:"/weather clear"}]);
 addEq({slot:0,name:"minecraft:netherite_helmet",count:1,ench:"5:3,0:4"});
 addTrade({buy:"minecraft:dirt",buy_count:1,sell:"minecraft:netherite_block",sell_count:64});
