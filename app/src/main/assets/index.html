@@ -626,11 +626,7 @@ pick_saved.onclick=()=>{
   catch(e){ show("读取目录失败: "+e,"err"); }
 };
 
-// 初始示例
-addCell("§r§f§aRunAway§e给标签蜂",[{mname:"§a放晴",command:"/weather clear"}]);
-addEq({slot:0,name:"minecraft:netherite_helmet",count:1,ench:"5:3,0:4"});
-addTrade({buy:"minecraft:dirt",buy_count:1,sell:"minecraft:netherite_block",sell_count:64});
-buildMobSlots();
+// 初始示例见脚本末尾（避免 const 暂时性死区）
 
 // ===== 生成 =====
 let lastOut="",lastName="";
@@ -907,6 +903,12 @@ function collectEffects(){
   });
   return out;
 }
+
+// ===== 初始化（放末尾，确保所有 const 已定义）=====
+addCell("§r§f§aRunAway§e给标签蜂",[{mname:"§a放晴",command:"/weather clear"}]);
+addEq({slot:0,name:"minecraft:netherite_helmet",count:1,ench:"5:3,0:4"});
+addTrade({buy:"minecraft:dirt",buy_count:1,sell:"minecraft:netherite_block",sell_count:64});
+buildMobSlots();
 </script>
 <!-- 物品ID 选择器弹窗 -->
 <div id="picker" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:100;padding:14px" onclick="if(event.target===this)closePicker()">
