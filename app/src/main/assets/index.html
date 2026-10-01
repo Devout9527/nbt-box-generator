@@ -39,6 +39,10 @@ td input{width:100%}
 .msg.err{background:rgba(248,81,73,.15);color:var(--err)}
 .stat{font-size:11px;color:var(--mut)}
 .two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.collapse-head{display:flex;align-items:center;gap:7px;cursor:pointer;user-select:none;padding:5px 0;font-size:12px;color:var(--mut)}
+.collapse-head:hover{color:var(--txt)}
+.col-arrow{color:var(--acc);font-weight:700;font-family:monospace;min-width:22px;display:inline-block}
+.col-num{font-size:11px;color:var(--mut)}
 </style></head><body>
 <div class="wrap">
 <h1>NBT 生成器 <span style="font-size:11px;color:var(--mut);font-weight:400">v__VER__</span></h1>
@@ -70,11 +74,13 @@ td input{width:100%}
 <input type="text" id="c_box_name" value="§r§f§l§aDevout盒子"></div>
 <div class="row"><label>L1 盒子 Lore（每行一条）</label>
 <textarea id="c_box_lore" rows="3" placeholder="§e━━ 盒子说明 ━━"></textarea></div>
-<div class="row"><label>格子列表 · 每格一个 L2 物品，内含多个 L3 矿车</label>
+<div class="row">
+  <div class="collapse-head" onclick="toggleSection(this)"><span class="col-arrow">[-]</span>格子列表 · 每格一个 L2 物品，内含多个 L3 矿车 <span class="col-num" id="c_count"></span></div>
+  <div class="col-body">
   <div id="c_cells"></div>
   <div class="toolbar" style="margin-top:6px">
     <button class="btn sec" onclick="addCell()">添加格子</button>
-    <span class="hint" id="c_count">0 格</span>
+  </div>
   </div>
 </div>
 <div class="two">
@@ -104,12 +110,14 @@ td input{width:100%}
 <label><input type="checkbox" id="e_unbreakable" checked> 不可破坏</label>
 <label><input type="checkbox" id="e_keep" checked> 死亡保留</label>
 <label><input type="checkbox" id="e_lock"> 物品锁定</label></div></div>
-<div class="row"><label>物品列表 · 每行一格（可选附魔，或从文件选自定义NBT）</label>
+<div class="row">
+  <div class="collapse-head" onclick="toggleSection(this)"><span class="col-arrow">[-]</span>物品列表 · 每行一格（可选附魔，或从文件选自定义NBT） <span class="col-num" id="e_count"></span></div>
+  <div class="col-body">
   <div id="e_cells"></div>
   <div class="toolbar" style="margin-top:6px">
     <button class="btn sec" onclick="addEq()">添加物品</button>
     <button class="btn sec" style="padding:5px 10px" onclick="document.getElementById('ench_ref').style.display=document.getElementById('ench_ref').style.display==='none'?'':'none'">附魔ID对照</button>
-    <span class="hint" id="e_count">0 件</span>
+  </div>
   </div>
 </div>
 <div id="ench_ref" style="display:none;background:#15171d;border:1px solid var(--border);border-radius:8px;padding:8px;font-size:11px;color:var(--mut);max-height:200px;overflow:auto"></div>
@@ -160,20 +168,26 @@ td input{width:100%}
 <div class="row"><label>实体名（游戏内显示在生物头顶，可空；支持 § 颜色码）</label>
   <input type="text" id="v_entity_name" value="">
   <textarea id="v_bio_nbt" style="display:none"></textarea></div>
-<div class="row"><label>生物装备（头盔 / 胸甲 / 护腿 / 靴子 / 主手 / 副手）</label>
-  <div id="v_mob_equip"></div>
+<div class="row">
+  <div class="collapse-head" onclick="toggleSection(this)"><span class="col-arrow">[-]</span>生物装备（头盔 / 胸甲 / 护腿 / 靴子 / 主手 / 副手）</div>
+  <div class="col-body"><div id="v_mob_equip"></div></div>
 </div>
-<div class="row"><label>药水效果</label>
-  <div id="v_effects"></div>
-  <div class="toolbar" style="margin-top:6px">
-    <button class="btn sec" onclick="addEffect()">➕ 加效果</button>
+<div class="row">
+  <div class="collapse-head" onclick="toggleSection(this)"><span class="col-arrow">[-]</span>药水效果 <span class="col-num" id="v_eff_num"></span></div>
+  <div class="col-body">
+    <div id="v_effects"></div>
+    <div class="toolbar" style="margin-top:6px">
+      <button class="btn sec" onclick="addEffect()">➕ 加效果</button>
+    </div>
   </div>
 </div>
-<div class="row"><label>交易列表 · 每行一笔（1 买入物 → N 卖出物）</label>
-  <div id="v_cells"></div>
-  <div class="toolbar" style="margin-top:6px">
-    <button class="btn sec" onclick="addTrade()">添加交易</button>
-    <span class="hint" id="v_count_lbl">0 笔</span>
+<div class="row">
+  <div class="collapse-head" onclick="toggleSection(this)"><span class="col-arrow">[-]</span>交易列表 · 每行一笔（1 买入物 → N 卖出物） <span class="col-num" id="v_count_lbl"></span></div>
+  <div class="col-body">
+    <div id="v_cells"></div>
+    <div class="toolbar" style="margin-top:6px">
+      <button class="btn sec" onclick="addTrade()">添加交易</button>
+    </div>
   </div>
 </div>
 </div>
@@ -308,6 +322,13 @@ function toggleCol(head){
   const arrow=head.querySelector(".col-arrow");
   if(body.style.display==="none"){body.style.display="";arrow.textContent="[-]";}
   else{body.style.display="none";arrow.textContent="[+]";}
+}
+// 通用区块折叠
+function toggleSection(head){
+  const body=head.nextElementSibling;
+  const arrow=head.querySelector(".col-arrow");
+  if(body.style.display==="none"){body.style.display="";if(arrow)arrow.textContent="[-]";}
+  else{body.style.display="none";if(arrow)arrow.textContent="[+]";}
 }
 function updateColNum(card){
   const n=card.querySelectorAll(".cbody tr").length;
@@ -893,8 +914,12 @@ function addEffect(o){
     <select class="eff-id" style="flex:1;min-width:0">${opts}</select>
     <input type="number" class="eff-amp" title="等级(0起)" placeholder="等级" value="${o.amplifier!=null?o.amplifier:1}" style="width:58px;flex:none">
     <input type="number" class="eff-dur" title="时长(tick)" placeholder="时长" value="${o.duration!=null?o.duration:999999}" style="width:88px;flex:none">
-    <button class="btn sec" style="padding:4px 9px;flex:none" onclick="this.closest('.eff-row').remove()">×</button>`;
-  box.appendChild(row);
+    <button class="btn sec" style="padding:4px 9px;flex:none" onclick="this.closest('.eff-row').remove();updEffNum()">×</button>`;
+  box.appendChild(row); updEffNum();
+}
+function updEffNum(){
+  const el=document.getElementById('v_eff_num');
+  if(el) el.textContent="("+document.querySelectorAll('#v_effects .eff-row').length+")";
 }
 function collectEffects(){
   const out=[];
