@@ -573,6 +573,16 @@ function cfg(){
     box_name:e_box_name.value,direction:e_direction.value,count:e_count_top.value,
     unbreakable:e_unbreakable.checked,keep_on_death:e_keep.checked,item_lock:e_lock.checked,
     items:eCollect(),version:v};
+  if(curMode==="spawner"){
+    const sel=document.getElementById('s_entity');
+    let ent = sel.value==='__custom__' ? (document.getElementById('s_entity_custom').value||'minecraft:wither').trim() : sel.value;
+    return {mode:"spawner",entity:ent,count:s_count.value,
+      spawn_count:s_spawn_count.value,spawn_range:s_spawn_range.value,
+      max_nearby:s_max_nearby.value,req_range:s_req_range.value,
+      min_delay:s_min_delay.value,max_delay:s_max_delay.value,delay:s_delay.value,
+      scale:s_scale.value,box_name:s_box_name.value,box_lore:s_box_lore.value,
+      ench:s_ench.value,version:v};
+  }
   const eq=collectMobEquip();
   return {mode:"villager",bucket_name:currentBucket(),box_name:v_box_name.value,
     box_lore:v_box_lore.value,count:v_count.value,maxUses:v_maxUses.value,
@@ -581,16 +591,6 @@ function cfg(){
     armor:eq.armor,mainhand:eq.mainhand,offhand:eq.offhand,
     effects:collectEffects(),bio_snbt:document.getElementById('v_bio_nbt').value,
     trades:vCollect(),version:v};
-}
-if(curMode==="spawner"){
-  const sel=document.getElementById('s_entity');
-  let ent = sel.value==='__custom__' ? (document.getElementById('s_entity_custom').value||'minecraft:wither').trim() : sel.value;
-  return {mode:"spawner",entity:ent,count:s_count.value,
-    spawn_count:s_spawn_count.value,spawn_range:s_spawn_range.value,
-    max_nearby:s_max_nearby.value,req_range:s_req_range.value,
-    min_delay:s_min_delay.value,max_delay:s_max_delay.value,delay:s_delay.value,
-    scale:s_scale.value,box_name:s_box_name.value,box_lore:s_box_lore.value,
-    ench:s_ench.value,version:v};
 }
 
 // 前端日志上报
