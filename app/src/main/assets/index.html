@@ -65,6 +65,7 @@ td input{width:100%}
   <div class="toolbar" style="margin-top:6px">
     <button class="btn sec" id="do_import">解析并载入</button>
     <button class="btn sec" id="pick_saved">从目录选择文件</button>
+    <button class="btn sec" id="dl_raw" style="padding:4px 8px;font-size:11px;color:var(--mut)" disabled>导出原NBT</button>
   </div>
   <div id="saved_list" style="margin-top:6px"></div>
 </div>
@@ -670,7 +671,11 @@ function loadModel(m){
 async function parseImport(text){
   try{
     const d = await api("/api/parse", {snbt:text});
-    if(d.ok) loadModel(d.model);
+    if(d.ok){
+      lastRawNbt=text;
+      const rb=document.getElementById('dl_raw'); if(rb) rb.disabled=false;
+      loadModel(d.model);
+    }
     else show("解析失败: "+d.error,"err");
   }catch(e){show(""+e.message,"err");}
 }
@@ -707,7 +712,8 @@ pick_saved.onclick=()=>{
 // 初始示例见脚本末尾（避免 const 暂时性死区）
 
 // ===== 生成 =====
-let lastOut="",lastName="";
+let lastOut="",lastName="",lastRawNbt="";
+dl_raw.onclick=()=>saveText("原始NBT.txt", lastRawNbt);
 gen.onclick=async()=>{
   gen.disabled=true;
   try{
