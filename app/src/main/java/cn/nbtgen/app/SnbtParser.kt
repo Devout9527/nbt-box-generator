@@ -126,12 +126,7 @@ object ModelParser {
         val name = root["Name"]?.toString() ?: ""
         return when {
             name == "minecraft:moving_block" -> parseSingleMovingBlock(root)
-            name.contains("bucket") -> {
-                val tag = asMap(root["tag"])
-                val offers = asMap(tag["Offers"])
-                if (asList(offers["Recipes"]).isNotEmpty()) parseVillager(root)
-                else throw IllegalArgumentException("这是实体桶（装怪物/生物的桶），暂不支持导入编辑")
-            }
+            name.contains("bucket") -> parseVillager(root)
             name == "minecraft:mob_spawner" -> throw IllegalArgumentException("刷怪笼物品暂不支持导入编辑")
             name == "minecraft:chest" -> {
                 val tag = asMap(root["tag"])
@@ -300,6 +295,30 @@ object ModelParser {
             .put("items", itemsArr)
     }
 
+    private fun extractMobItem(item: Any?): JSONObject {
+        val m = asMap(item)
+        if (m.isEmpty()) return JSONObject()
+        val name = m["Name"]?.toString() ?: ""
+        val itTag = asMap(m["tag"])
+        val std = setOf("Damage", "ench", "display")
+        if (itTag.keys.any { it !in std }) {
+            try {
+                return JSONObject().put("name", name).put("snbt", parsedToTag(m).dump())
+            } catch (_: Exception) {}
+        }
+        val disp = asMap(itTag["display"])
+        val ep = ArrayList<String>()
+        for (e in asList(itTag["ench"])) {
+            val em = asMap(e)
+            ep.add("${numInt(em["id"])}:${numInt(em["lvl"])}")
+        }
+        return JSONObject()
+            .put("name", name)
+            .put("ench", ep.joinToString(","))
+            .put("iname", disp["Name"]?.toString() ?: "")
+            .put("lore", asList(disp["Lore"]).joinToString("\n") { it.toString() })
+    }
+
     private fun parseVillager(root: Map<String, Any>): JSONObject {
         val tag = asMap(root["tag"])
         val disp = asMap(tag["display"])
@@ -315,7 +334,6 @@ object ModelParser {
                 .put("buy", buy["Name"]?.toString() ?: "")
                 .put("buy_count", numInt(buy["Count"], 1))
                 .put("sell_count", numInt(sell["Count"], 1))
-            // 卖出物带 tag 或额外字段 → 用 sell_snbt 保真
             if ("tag" in sellKeys || sellKeys.any { it !in simpleKeys }) {
                 try {
                     item.put("sell_snbt", parsedToTag(sell).dump())
@@ -327,17 +345,49 @@ object ModelParser {
             }
             trades.put(item)
         }
+
+        // 装备（4盔甲 + 主手 + 副手）
+        val armorList = asList(tag["Armor"])
+        val armor = JSONArray()
+        for (i in 0 until 4) armor.put(if (i < armorList.size) extractMobItem(armorList[i]) else JSONObject())
+        val mhList = asList(tag["Mainhand"])
+        val mainhand = if (mhList.isNotEmpty()) extractMobItem(mhList[0]) else JSONObject()
+        val ohList = asList(tag["Offhand"])
+        val offhand = if (ohList.isNotEmpty()) extractMobItem(ohList[0]) else JSONObject()
+
+        // 药水效果
+        val effects = JSONArray()
+        for (e in asList(tag["ActiveEffects"])) {
+            val em = asMap(e)
+            effects.put(JSONObject()
+                .put("id", numInt(em["Id"], 1))
+                .put("amplifier", numInt(em["Amplifier"], 1))
+                .put("duration", numInt(em["Duration"], 999999)))
+        }
+
+        // bio_snbt：完整实体数据（去掉 Offers/display）
+        val tagCopy = LinkedHashMap<String, Any>(tag)
+        tagCopy.remove("Offers"); tagCopy.remove("display")
+        var bioSnbt = ""
+        try { bioSnbt = parsedToTag(tagCopy).dump() } catch (_: Exception) {}
+
         val firstRecipe = asMap(recipes.firstOrNull())
         return JSONObject()
             .put("mode", "villager")
             .put("bucket_name", root["Name"]?.toString() ?: "minecraft:cod_bucket")
             .put("box_name", disp["Name"]?.toString() ?: "")
             .put("box_lore", asList(disp["Lore"]).joinToString("\n") { it.toString() })
+            .put("entity_name", tag["CustomName"]?.toString() ?: "")
+            .put("bio_snbt", bioSnbt)
             .put("count", numInt(root["Count"], 1))
             .put("maxUses", numInt(firstRecipe["maxUses"], 1000))
             .put("traderExp", numInt(firstRecipe["traderExp"], 1145))
             .put("tickDelay", numInt(tag["TickDelay"], 250))
             .put("definitions", asList(tag["definitions"]).joinToString(",") { it.toString() })
+            .put("armor", armor)
+            .put("mainhand", mainhand)
+            .put("offhand", offhand)
+            .put("effects", effects)
             .put("trades", trades)
     }
 }

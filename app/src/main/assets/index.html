@@ -135,7 +135,40 @@ td input{width:100%}
 <div class="two">
 <div class="row"><label>maxUses（交易次数）</label><input type="number" id="v_maxUses" value="1000"></div>
 <div class="row"><label>traderExp</label><input type="number" id="v_traderExp" value="1145"></div></div>
-<div class="row"><label>definitions（实体定义，逗号分隔）</label><input type="text" id="v_definitions" value="+wandering_trader"></div>
+<div class="row"><label>实体类型（生物种类）</label>
+  <select id="v_entity" onchange="onEntityChange()">
+    <option value="+wandering_trader">流浪商人 wandering_trader</option>
+    <option value="+minecraft:zombie">僵尸 zombie</option>
+    <option value="+minecraft:husk">尸壳 husk</option>
+    <option value="+minecraft:skeleton">骷髅 skeleton</option>
+    <option value="+minecraft:stray">流浪者 stray</option>
+    <option value="+minecraft:wither_skeleton">凋零骷髅 wither_skeleton</option>
+    <option value="+minecraft:creeper">苦力怕 creeper</option>
+    <option value="+minecraft:enderman">末影人 enderman</option>
+    <option value="+minecraft:blaze">烈焰人 blaze</option>
+    <option value="+minecraft:vindicator">卫道士 vindicator</option>
+    <option value="+minecraft:pillager">掠夺者 pillager</option>
+    <option value="+minecraft:evocation_illager">唤魔者 evocation_illager</option>
+    <option value="+minecraft:iron_golem">铁傀儡 iron_golem</option>
+    <option value="+minecraft:villager_v2">村民 villager_v2</option>
+    <option value="+minecraft:wither">凋灵 wither</option>
+    <option value="+minecraft:ender_dragon">末影龙 ender_dragon</option>
+    <option value="__custom__">自定义…</option>
+  </select>
+  <input type="text" id="v_entity_custom" style="display:none;margin-top:6px" placeholder="+minecraft:xxx">
+</div>
+<div class="row"><label>实体名（游戏内显示在生物头顶，可空；支持 § 颜色码）</label>
+  <input type="text" id="v_entity_name" value="">
+  <textarea id="v_bio_nbt" style="display:none"></textarea></div>
+<div class="row"><label>生物装备（头盔 / 胸甲 / 护腿 / 靴子 / 主手 / 副手）</label>
+  <div id="v_mob_equip"></div>
+</div>
+<div class="row"><label>药水效果</label>
+  <div id="v_effects"></div>
+  <div class="toolbar" style="margin-top:6px">
+    <button class="btn sec" onclick="addEffect()">➕ 加效果</button>
+  </div>
+</div>
 <div class="row"><label>交易列表 · 每行一笔（1 买入物 → N 卖出物）</label>
   <div id="v_cells"></div>
   <div class="toolbar" style="margin-top:6px">
@@ -480,9 +513,13 @@ function cfg(){
     box_name:e_box_name.value,direction:e_direction.value,count:e_count_top.value,
     unbreakable:e_unbreakable.checked,keep_on_death:e_keep.checked,item_lock:e_lock.checked,
     items:eCollect(),version:v};
+  const eq=collectMobEquip();
   return {mode:"villager",bucket_name:currentBucket(),box_name:v_box_name.value,
     box_lore:v_box_lore.value,count:v_count.value,maxUses:v_maxUses.value,
-    traderExp:v_traderExp.value,tickDelay:v_tickDelay.value,definitions:v_definitions.value,
+    traderExp:v_traderExp.value,tickDelay:v_tickDelay.value,
+    definitions:currentEntity(),entity_name:v_entity_name.value,
+    armor:eq.armor,mainhand:eq.mainhand,offhand:eq.offhand,
+    effects:collectEffects(),bio_snbt:document.getElementById('v_bio_nbt').value,
     trades:vCollect(),version:v};
 }
 
@@ -539,7 +576,15 @@ function loadModel(m){
     v_box_name.value=m.box_name||""; v_box_lore.value=m.box_lore||"";
     v_count.value=m.count||1; v_maxUses.value=m.maxUses||1000;
     v_traderExp.value=m.traderExp||1145; v_tickDelay.value=m.tickDelay||250;
-    v_definitions.value=m.definitions||"+wandering_trader";
+    setEntity(m.definitions||"+wandering_trader");
+    v_entity_name.value=m.entity_name||"";
+    document.getElementById('v_bio_nbt').value=m.bio_snbt||"";
+    buildMobSlots();
+    (m.armor||[]).forEach((a,i)=>setMobSlot('armor-'+i,a));
+    setMobSlot('mainhand',m.mainhand||{});
+    setMobSlot('offhand',m.offhand||{});
+    document.getElementById('v_effects').innerHTML="";
+    (m.effects||[]).forEach(e=>addEffect(e));
     v_cells.innerHTML=""; (m.trades||[]).forEach(t=>addTrade(t));
   }
   show("已载入："+m.mode,"ok");
@@ -585,6 +630,7 @@ pick_saved.onclick=()=>{
 addCell("§r§f§aRunAway§e给标签蜂",[{mname:"§a放晴",command:"/weather clear"}]);
 addEq({slot:0,name:"minecraft:netherite_helmet",count:1,ench:"5:3,0:4"});
 addTrade({buy:"minecraft:dirt",buy_count:1,sell:"minecraft:netherite_block",sell_count:64});
+buildMobSlots();
 
 // ===== 生成 =====
 let lastOut="",lastName="";
@@ -701,6 +747,126 @@ function setBucket(v){
     sel.appendChild(opt);
   }
   sel.value=v;
+}
+
+// ===== 实体类型 =====
+function onEntityChange(){
+  const sel=document.getElementById('v_entity');
+  document.getElementById('v_entity_custom').style.display = (sel.value==='__custom__')?'':'none';
+}
+function currentEntity(){
+  const sel=document.getElementById('v_entity');
+  if(sel.value==='__custom__') return (document.getElementById('v_entity_custom').value||'').trim() || '+wandering_trader';
+  return sel.value;
+}
+function setEntity(v){
+  const sel=document.getElementById('v_entity');
+  let opt=[...sel.options].find(o=>o.value===v);
+  if(!opt){ opt=document.createElement('option'); opt.value=v; opt.textContent=v; sel.appendChild(opt); }
+  sel.value=v;
+  document.getElementById('v_entity_custom').style.display='none';
+}
+
+// ===== 生物装备槽（4盔甲+主手+副手）=====
+const MOB_SLOTS=[
+  {key:'armor-0',label:'头盔'},{key:'armor-1',label:'胸甲'},
+  {key:'armor-2',label:'护腿'},{key:'armor-3',label:'靴子'},
+  {key:'mainhand',label:'主手'},{key:'offhand',label:'副手'}
+];
+function buildMobSlots(){
+  const box=document.getElementById('v_mob_equip');
+  if(box.children.length) return;
+  MOB_SLOTS.forEach(s=>{
+    const card=document.createElement('div'); card.className='subcard'; card.dataset.key=s.key;
+    card.innerHTML=`
+      <label style="font-size:11px">${s.label}</label>
+      <div style="display:flex;gap:6px;margin-bottom:4px">
+        <input type="text" class="mob_name" list="item_ids" placeholder="物品ID（留空=空）" value="" style="flex:1;min-width:0">
+        <button class="btn sec" style="padding:6px 10px;flex:none" onclick="openItemPicker(this.previousElementSibling)">选</button>
+      </div>
+      <div style="display:flex;gap:6px;margin-bottom:4px">
+        <input type="text" class="mob_ench" placeholder="附魔 0:4,17:3" value="" style="flex:1;min-width:0">
+        <input type="text" class="mob_iname" placeholder="显示名(可选)" value="" style="flex:1;min-width:0">
+      </div>
+      <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+        <button class="btn sec" style="padding:5px 10px" onclick="pickMobNbt(this)">用自定义NBT</button>
+        <span class="nbt-badge" style="font-size:11px;color:var(--ok);display:none"></span>
+        <button class="btn sec" style="padding:5px 10px;display:none" onclick="clearMobNbt(this)">清除NBT</button>
+      </div>
+      <textarea class="mob_nbt" style="display:none"></textarea>`;
+    box.appendChild(card);
+  });
+}
+function pickMobNbt(btn){
+  if(!(window.AndroidBridge && AndroidBridge.listFiles)){ show("此功能仅在 App 内可用","err"); return; }
+  const card=btn.closest(".subcard");
+  openFilePicker(function(name, content){
+    if(!content){ show("文件为空","err"); return; }
+    card.querySelector(".mob_nbt").value=content;
+    const b=card.querySelector(".nbt-badge"); b.textContent="已附加: "+name; b.style.display="";
+    b.nextElementSibling.style.display="";
+  });
+}
+function clearMobNbt(btn){
+  const card=btn.closest(".subcard");
+  card.querySelector(".mob_nbt").value="";
+  const b=card.querySelector(".nbt-badge"); b.textContent=""; b.style.display="none";
+  btn.style.display="none";
+}
+function setMobSlot(key,data){
+  buildMobSlots();
+  const card=[...document.querySelectorAll('#v_mob_equip .subcard')].find(c=>c.dataset.key===key);
+  if(!card) return;
+  data=data||{};
+  card.querySelector(".mob_name").value=data.name||"";
+  card.querySelector(".mob_ench").value=data.ench||"";
+  card.querySelector(".mob_iname").value=data.iname||"";
+  if(data.snbt){
+    card.querySelector(".mob_nbt").value=data.snbt;
+    const b=card.querySelector(".nbt-badge"); b.textContent="已附加自定义NBT"; b.style.display="";
+    b.nextElementSibling.style.display="";
+  }
+}
+function collectMobEquip(){
+  const out={armor:[{},{},{},{}],mainhand:{},offhand:{}};
+  document.querySelectorAll('#v_mob_equip .subcard').forEach(card=>{
+    const key=card.dataset.key;
+    const nbt=(card.querySelector(".mob_nbt").value||"").trim();
+    const name=card.querySelector(".mob_name").value.trim();
+    const ench=card.querySelector(".mob_ench").value.trim();
+    const iname=card.querySelector(".mob_iname").value.trim();
+    let obj;
+    if(nbt) obj={name:name||"",snbt:nbt};
+    else if(name) obj={name,ench,iname};
+    else obj={};
+    if(key.startsWith('armor-')) out.armor[parseInt(key.slice(6))]=obj;
+    else if(key==='mainhand') out.mainhand=obj;
+    else if(key==='offhand') out.offhand=obj;
+  });
+  return out;
+}
+
+// ===== 药水效果 =====
+const EFFECTS={1:"速度",2:"缓慢",3:"急迫",4:"挖掘疲劳",5:"力量",6:"瞬间治疗",7:"瞬间伤害",8:"跳跃提升",9:"反胃",10:"生命恢复",11:"抗性提升",12:"防火",13:"水下呼吸",14:"失明",15:"夜视",16:"饥饿",17:"虚弱",18:"中毒",19:"凋零",20:"生命提升",21:"伤害吸收",22:"饱和",23:"发光",24:"飘浮",25:"霉运",26:"不祥之兆",27:"村庄英雄"};
+function addEffect(o){
+  o=o||{};
+  const box=document.getElementById('v_effects');
+  const row=document.createElement('div'); row.className='subcard eff-row';
+  row.style.cssText='display:flex;gap:6px;align-items:center;flex-wrap:wrap';
+  const opts=Object.keys(EFFECTS).map(k=>`<option value="${k}" ${String(k)===String(o.id)?"selected":""}>${EFFECTS[k]} (${k})</option>`).join("");
+  row.innerHTML=`
+    <select class="eff-id" style="flex:1;min-width:0">${opts}</select>
+    <input type="number" class="eff-amp" title="等级(0起)" placeholder="等级" value="${o.amplifier!=null?o.amplifier:1}" style="width:58px;flex:none">
+    <input type="number" class="eff-dur" title="时长(tick)" placeholder="时长" value="${o.duration!=null?o.duration:999999}" style="width:88px;flex:none">
+    <button class="btn sec" style="padding:4px 9px;flex:none" onclick="this.closest('.eff-row').remove()">×</button>`;
+  box.appendChild(row);
+}
+function collectEffects(){
+  const out=[];
+  document.querySelectorAll('#v_effects .eff-row').forEach(r=>{
+    out.push({id:r.querySelector('.eff-id').value,amplifier:r.querySelector('.eff-amp').value,duration:r.querySelector('.eff-dur').value});
+  });
+  return out;
 }
 </script>
 <!-- 物品ID 选择器弹窗 -->

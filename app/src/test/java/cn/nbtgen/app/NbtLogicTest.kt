@@ -28,6 +28,9 @@ class NbtLogicTest {
     @Test
     fun villagerCustomSellMatchesPython() = check("vill2")
 
+    @Test
+    fun mobCreatureMatchesPython() = check("mob")
+
     private fun check(key: String) {
         val data = loadData().getJSONObject(key)
         val cfg = data.getJSONObject("cfg")

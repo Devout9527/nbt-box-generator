@@ -148,6 +148,68 @@ fun makeTradeItem(name: String, count: Int): TCompound =
     comp("Count" to TByte(count), "Damage" to TShort(0),
          "Name" to TString(name), "WasPickedUp" to TByte(0))
 
+/** 生物装备槽物品（盔甲/主手/副手），支持自定义NBT */
+fun makeMobItem(it: JSONObject?): TCompound {
+    val o = it ?: JSONObject()
+    val snbt = o.asStr("snbt").trim()
+    if (snbt.isNotEmpty()) {
+        try {
+            val tag = parsedToTag(SnbtParser(snbt).parse())
+            if (tag is TCompound) return tag
+        } catch (_: Exception) {}
+    }
+    val name = o.asStr("name").trim()
+    val count = o.asInt("count", 1)
+    if (name.isEmpty()) {
+        return comp("Count" to TByte(0), "Damage" to TShort(0),
+                    "Name" to TString(""), "WasPickedUp" to TByte(0))
+    }
+    val ep = ArrayList<Pair<Int, Int>>()
+    for (part in o.asStr("ench").split(",")) {
+        val p = part.trim()
+        if (p.contains(":")) {
+            val a = p.substringBefore(":").trim().toIntOrNull()
+            val b = p.substringAfter(":").trim().toIntOrNull()
+            if (a != null && b != null) ep.add(a to b)
+        }
+    }
+    val il = o.asStr("lore").split("\n").filter { it.isNotBlank() }
+    val dn = o.asStr("iname").trim()
+    val tag = LinkedHashMap<String, Tag>()
+    tag["Damage"] = TInt(0)
+    if (ep.isNotEmpty()) tag["ench"] = TList(ep.map { comp("id" to TShort(it.first), "lvl" to TShort(it.second)) })
+    val disp = LinkedHashMap<String, Tag>()
+    if (dn.isNotEmpty()) disp["Name"] = TString(dn)
+    if (il.isNotEmpty()) disp["Lore"] = TList(il.map { TString(it) })
+    if (disp.isNotEmpty()) tag["display"] = TCompound(disp)
+    return comp("Count" to TByte(count), "Damage" to TShort(0), "Name" to TString(name),
+                "WasPickedUp" to TByte(0), "tag" to TCompound(tag))
+}
+
+private fun buildEffects(effects: JSONArray?): TList {
+    val out = ArrayList<Tag>()
+    if (effects != null) for (i in 0 until effects.length()) {
+        val e = effects.optJSONObject(i) ?: continue
+        val eid = e.asInt("id", 1); val amp = e.asInt("amplifier", 1); val dur = e.asInt("duration", 999999)
+        out.add(comp(
+            "Ambient" to TByte(0), "Amplifier" to TByte(amp),
+            "DisplayOnScreenTextureAnimation" to TByte(0),
+            "Duration" to TInt(dur), "DurationEasy" to TInt(dur),
+            "DurationHard" to TInt(dur), "DurationNormal" to TInt(dur),
+            "Id" to TByte(eid), "ShowParticles" to TByte(0)))
+    }
+    return TList(out)
+}
+
+private fun armorList(armor: JSONArray?): TList {
+    val out = ArrayList<Tag>()
+    for (i in 0 until 4) {
+        val it = armor?.optJSONObject(i)
+        out.add(makeMobItem(it))
+    }
+    return TList(out)
+}
+
 /** 把解析后的结构（Map/List/String）转回 Tag，用于嵌入自定义 NBT 物品 */
 fun parsedToTag(o: Any?): Tag = when (o) {
     is Tag -> o
@@ -339,28 +401,40 @@ fun buildEquipmentBox(cfg: JSONObject): Built {
 }
 
 fun buildVillagerBucket(cfg: JSONObject): Built {
-    val trades = cfg.optJSONArray("trades") ?: throw IllegalArgumentException("没有交易")
+    val trades = cfg.optJSONArray("trades") ?: JSONArray()
+    val armor = cfg.optJSONArray("armor")
+    val mainhand = cfg.optJSONObject("mainhand")
+    val offhand = cfg.optJSONObject("offhand")
+    val effects = cfg.optJSONArray("effects")
+    val entityName = cfg.asStr("entity_name")
+    val tradesN = trades.length()
+    val armorN = armor?.length() ?: 0
+    val mhN = mainhand?.length() ?: 0
+    val ohN = offhand?.length() ?: 0
+    val effN = effects?.length() ?: 0
+    if (tradesN == 0 && armorN == 0 && mhN == 0 && ohN == 0 && effN == 0)
+        throw IllegalArgumentException("没有交易、装备或效果")
+
     val maxUses = cfg.asInt("maxUses", 1000)
     val traderExp = cfg.asInt("traderExp", 1145)
     val tickDelay = cfg.asInt("tickDelay", 250)
     val defs = cfg.asStr("definitions").split(",").map { it.trim() }.filter { it.isNotEmpty() }
         .ifEmpty { listOf("+wandering_trader") }
+    val isTrader = defs.any { it.contains("wandering_trader") }
     val bucketName = cfg.asStr("bucket_name").ifEmpty { "minecraft:cod_bucket" }
     val dispName = cfg.asStr("box_name")
     val lore = cfg.asStr("box_lore").split("\n").filter { it.isNotBlank() }
 
     val recipes = ArrayList<Tag>()
-    for (i in 0 until trades.length()) {
+    for (i in 0 until tradesN) {
         val t = trades.optJSONObject(i) ?: continue
         val buy = t.asStr("buy").trim()
         if (buy.isEmpty()) continue
         val buyCount = t.asInt("buy_count", 1)
         val sellSnbt = t.asStr("sell_snbt").trim()
         if (sellSnbt.isNotEmpty()) {
-            // 自定义 NBT 卖出物：解析后嵌入，可覆盖数量
             try {
-                val parsed = SnbtParser(sellSnbt).parse()
-                val sellTag = parsedToTag(parsed)
+                val sellTag = parsedToTag(SnbtParser(sellSnbt).parse())
                 val sc = t.opt("sell_count")
                 val scInt = when (sc) {
                     null, JSONObject.NULL -> 0
@@ -368,9 +442,7 @@ fun buildVillagerBucket(cfg: JSONObject): Built {
                     is String -> sc.trim().toIntOrNull() ?: 0
                     else -> 0
                 }
-                if (scInt != 0 && sellTag is TCompound) {
-                    sellTag.map["Count"] = TByte(scInt)
-                }
+                if (scInt != 0 && sellTag is TCompound) sellTag.map["Count"] = TByte(scInt)
                 recipes.add(makeRecipe(buy, buyCount, sellTag, maxUses, traderExp))
                 continue
             } catch (_: Exception) {}
@@ -380,29 +452,72 @@ fun buildVillagerBucket(cfg: JSONObject): Built {
         recipes.add(makeRecipe(buy, buyCount,
             makeTradeItem(sell, t.asInt("sell_count", 64)), maxUses, traderExp))
     }
-    if (recipes.isEmpty()) throw IllegalArgumentException("没有有效交易")
 
+    val count = cfg.asInt("count", 1)
+
+    // 自定义生物NBT：保留完整实体数据，叠加自定义
+    val bioSnbt = cfg.asStr("bio_snbt").trim()
+    if (bioSnbt.isNotEmpty()) {
+        try {
+            val bioTag = parsedToTag(SnbtParser(bioSnbt).parse())
+            if (bioTag is TCompound) {
+                val tag = bioTag.map
+                tag["Armor"] = armorList(armor)
+                tag["Mainhand"] = TList(listOf(makeMobItem(mainhand)))
+                tag["Offhand"] = TList(listOf(makeMobItem(offhand)))
+                if (effN > 0) tag["ActiveEffects"] = buildEffects(effects)
+                else tag.remove("ActiveEffects")
+                if (defs.isNotEmpty()) tag["definitions"] = TList(defs.map { TString(it) })
+                if (entityName.isNotEmpty()) {
+                    tag["CustomName"] = TString(entityName)
+                    tag["CustomNameVisible"] = TByte(1)
+                }
+                if (recipes.isNotEmpty()) tag["Offers"] = comp("Recipes" to TList(recipes))
+                else tag.remove("Offers")
+                val disp = LinkedHashMap<String, Tag>()
+                if (lore.isNotEmpty()) disp["Lore"] = TList(lore.map { TString(it) })
+                if (dispName.isNotEmpty()) disp["Name"] = TString(dispName)
+                if (disp.isNotEmpty()) tag["display"] = TCompound(disp)
+                val root = comp(
+                    "Count" to TByte(count), "Damage" to TShort(0),
+                    "Name" to TString(bucketName), "WasPickedUp" to TByte(0),
+                    "tag" to TCompound(tag))
+                return Built(root.dump(), maxOf(recipes.size, 1))
+            }
+        } catch (_: Exception) {}
+    }
+
+    // 默认构建（无 bio_snbt）
     val tag = LinkedHashMap<String, Tag>()
-    tag["ExecuteOnFirstTick"] = TByte(1)
-    tag["Offers"] = comp("Recipes" to TList(recipes))
-    tag["Pos"] = TList(listOf(TFloat(-7.05), TFloat(4.0), TFloat(-0.8)))
-    tag["Tags"] = TList(listOf(TString(""), TString("")))
-    tag["TickDelay"] = TInt(tickDelay)
-    tag["Ticking"] = TByte(0)
+    tag["Air"] = TShort(300)
+    tag["AppendCustomName"] = TByte(1)
+    if (entityName.isNotEmpty()) {
+        tag["CustomName"] = TString(entityName)
+        tag["CustomNameVisible"] = TByte(1)
+    }
+    tag["Armor"] = armorList(armor)
+    tag["Mainhand"] = TList(listOf(makeMobItem(mainhand)))
+    tag["Offhand"] = TList(listOf(makeMobItem(offhand)))
+    if (effN > 0) tag["ActiveEffects"] = buildEffects(effects)
     tag["definitions"] = TList(defs.map { TString(it) })
+    if (recipes.isNotEmpty()) tag["Offers"] = comp("Recipes" to TList(recipes))
+    if (isTrader) {
+        tag["ExecuteOnFirstTick"] = TByte(1)
+        tag["TickDelay"] = TInt(tickDelay)
+        tag["Ticking"] = TByte(0)
+        tag["Pos"] = TList(emptyList())
+        tag["Tags"] = TList(listOf(TString(""), TString("")))
+    }
     val disp = LinkedHashMap<String, Tag>()
     if (lore.isNotEmpty()) disp["Lore"] = TList(lore.map { TString(it) })
     if (dispName.isNotEmpty()) disp["Name"] = TString(dispName)
     if (disp.isNotEmpty()) tag["display"] = TCompound(disp)
 
     val root = comp(
-        "Count" to TByte(cfg.asInt("count", 1)),
-        "Damage" to TShort(0),
-        "Name" to TString(bucketName),
-        "WasPickedUp" to TByte(0),
-        "tag" to TCompound(tag)
-    )
-    return Built(root.dump(), recipes.size)
+        "Count" to TByte(count), "Damage" to TShort(0),
+        "Name" to TString(bucketName), "WasPickedUp" to TByte(0),
+        "tag" to TCompound(tag))
+    return Built(root.dump(), maxOf(recipes.size, 1))
 }
 
 fun buildSnbt(cfg: JSONObject): Built {
