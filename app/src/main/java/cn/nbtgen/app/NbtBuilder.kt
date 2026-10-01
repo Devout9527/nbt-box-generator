@@ -520,12 +520,69 @@ fun buildVillagerBucket(cfg: JSONObject): Built {
     return Built(root.dump(), maxOf(recipes.size, 1))
 }
 
+fun buildSpawner(cfg: JSONObject): Built {
+    val ent = cfg.asStr("entity").ifEmpty { "minecraft:wither" }.trim()
+    val count = cfg.asInt("count", 64)
+    val spawnCount = cfg.asInt("spawn_count", 100)
+    val spawnRange = cfg.asInt("spawn_range", 10)
+    val maxNearby = cfg.asInt("max_nearby", 10000)
+    val reqRange = cfg.asInt("req_range", 100)
+    val minDelay = cfg.asInt("min_delay", 1)
+    val maxDelay = cfg.asInt("max_delay", 20)
+    val delay = cfg.asInt("delay", 2)
+    var scaleF: Float? = null
+    try { val s = cfg.asStr("scale").trim(); if (s.isNotEmpty()) scaleF = s.toFloat() } catch (_: Exception) {}
+    val dispName = cfg.asStr("box_name")
+    val lore = cfg.asStr("box_lore").split("\n").filter { it.isNotBlank() }
+    val ep = ArrayList<Pair<Int, Int>>()
+    for (part in cfg.asStr("ench").split(",")) {
+        val p = part.trim()
+        if (p.contains(":")) {
+            val a = p.substringBefore(":").trim().toIntOrNull()
+            val b = p.substringAfter(":").trim().toIntOrNull()
+            if (a != null && b != null) ep.add(a to b)
+        }
+    }
+
+    val tag = LinkedHashMap<String, Tag>()
+    tag["Delay"] = TShort(delay)
+    tag["EntityIdentifier"] = TString(ent)
+    tag["MaxNearbyEntities"] = TShort(maxNearby)
+    tag["MaxSpawnDelay"] = TShort(maxDelay)
+    tag["MinSpawnDelay"] = TShort(minDelay)
+    tag["RequiredPlayerRange"] = TShort(reqRange)
+    tag["SpawnCount"] = TShort(spawnCount)
+    tag["SpawnRange"] = TShort(spawnRange)
+    if (scaleF != null) {
+        val sc = scaleF.toDouble()
+        tag["DisplayEntityHeight"] = TFloat(sc)
+        tag["DisplayEntityScale"] = TFloat(sc)
+        tag["DisplayEntityWidth"] = TFloat(sc)
+    }
+    if (ep.isNotEmpty()) tag["ench"] = TList(ep.map { comp("id" to TShort(it.first), "lvl" to TShort(it.second)) })
+    val disp = LinkedHashMap<String, Tag>()
+    if (lore.isNotEmpty()) disp["Lore"] = TList(lore.map { TString(it) })
+    if (dispName.isNotEmpty()) disp["Name"] = TString(dispName)
+    if (disp.isNotEmpty()) tag["display"] = TCompound(disp)
+    tag["minecraft:keep_on_death"] = TByte(1)
+
+    val root = comp(
+        "Block" to comp("name" to TString("minecraft:mob_spawner"),
+                        "version" to TInt(17879555),
+                        "states" to TCompound(LinkedHashMap())),
+        "Count" to TByte(count), "Damage" to TShort(0),
+        "Name" to TString("minecraft:mob_spawner"), "WasPickedUp" to TByte(0),
+        "tag" to TCompound(tag))
+    return Built(root.dump(), 1)
+}
+
 fun buildSnbt(cfg: JSONObject): Built {
     val mode = cfg.asStr("mode").ifEmpty { "command" }.lowercase()
     return when (mode) {
         "command", "cmd", "命令盒", "命令" -> buildCommandBox(cfg)
         "equipment", "equip", "装备盒", "装备" -> buildEquipmentBox(cfg)
         "villager", "bucket", "村民", "鱼桶", "村民鱼桶" -> buildVillagerBucket(cfg)
+        "spawner", "刷怪笼", "刷怪" -> buildSpawner(cfg)
         else -> throw IllegalArgumentException("未知模式: $mode")
     }
 }

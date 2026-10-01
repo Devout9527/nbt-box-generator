@@ -46,12 +46,13 @@ td input{width:100%}
 </style></head><body>
 <div class="wrap">
 <h1>NBT 生成器 <span id="ver_span" style="font-size:13px;color:var(--acc);font-weight:600">v__VER__</span></h1>
-<div class="sub">网易版 Minecraft · 命令盒 / NBT盒 / 生物桶 三种模式</div>
+<div class="sub">网易版 Minecraft · 命令盒 / NBT盒 / 生物桶 / 刷怪笼 四种模式</div>
 
 <div class="tabs">
   <button class="tab active" data-mode="command" onclick="switchMode('command')">命令盒</button>
   <button class="tab" data-mode="equipment" onclick="switchMode('equipment')">NBT盒</button>
   <button class="tab" data-mode="villager" onclick="switchMode('villager')">生物桶</button>
+  <button class="tab" data-mode="spawner" onclick="switchMode('spawner')">刷怪笼</button>
 </div>
 
 <div class="grid">
@@ -190,6 +191,44 @@ td input{width:100%}
     </div>
   </div>
 </div>
+</div>
+
+<div id="panel_spawner" class="panel" style="display:none">
+<div class="two">
+<div class="row"><label>刷的怪（EntityIdentifier）</label>
+  <select id="s_entity" onchange="onSpawnerEntityChange()">
+    <option value="minecraft:wither">凋零 wither</option>
+    <option value="minecraft:ghast">恶魂 ghast</option>
+    <option value="minecraft:ender_dragon">末影龙 ender_dragon</option>
+    <option value="minecraft:lightning_bolt">闪电 lightning_bolt</option>
+    <option value="minecraft:zombie">僵尸 zombie</option>
+    <option value="minecraft:skeleton">骷髅 skeleton</option>
+    <option value="minecraft:creeper">苦力怕 creeper</option>
+    <option value="minecraft:spider">蜘蛛 spider</option>
+    <option value="minecraft:blaze">烈焰人 blaze</option>
+    <option value="minecraft:enderman">末影人 enderman</option>
+    <option value="minecraft:wither_skeleton">凋零骷髅 wither_skeleton</option>
+    <option value="minecraft:villager_v2">村民 villager_v2</option>
+    <option value="__custom__">自定义…</option>
+  </select>
+  <input type="text" id="s_entity_custom" style="display:none;margin-top:6px" placeholder="minecraft:xxx">
+</div>
+<div class="row"><label>数量 Count</label><input type="number" id="s_count" value="64" min="1"></div></div>
+<div class="row"><label>显示名（可空）</label><input type="text" id="s_box_name" value=""></div>
+<div class="row"><label>Lore（每行一条）</label><textarea id="s_box_lore" rows="2"></textarea></div>
+<div class="two">
+<div class="row"><label>SpawnCount 每次刷几只</label><input type="number" id="s_spawn_count" value="100"></div>
+<div class="row"><label>SpawnRange 刷怪范围</label><input type="number" id="s_spawn_range" value="10"></div></div>
+<div class="two">
+<div class="row"><label>MaxNearbyEntities 附近上限</label><input type="number" id="s_max_nearby" value="10000"></div>
+<div class="row"><label>RequiredPlayerRange 玩家范围</label><input type="number" id="s_req_range" value="100"></div></div>
+<div class="two">
+<div class="row"><label>MinSpawnDelay 最短延迟</label><input type="number" id="s_min_delay" value="1"></div>
+<div class="row"><label>MaxSpawnDelay 最长延迟</label><input type="number" id="s_max_delay" value="20"></div></div>
+<div class="two">
+<div class="row"><label>Delay 首次延迟</label><input type="number" id="s_delay" value="2"></div>
+<div class="row"><label>显示大小（DisplayEntityScale，可空）</label><input type="number" id="s_scale" step="0.1" value=""></div></div>
+<div class="row"><label>附魔（id:lvl，逗号分隔，可空）</label><input type="text" id="s_ench" value=""></div>
 </div>
 
 <div class="row"><label>数据版本 version</label><input type="text" id="version" value="18168865"></div>
@@ -543,6 +582,16 @@ function cfg(){
     effects:collectEffects(),bio_snbt:document.getElementById('v_bio_nbt').value,
     trades:vCollect(),version:v};
 }
+if(curMode==="spawner"){
+  const sel=document.getElementById('s_entity');
+  let ent = sel.value==='__custom__' ? (document.getElementById('s_entity_custom').value||'minecraft:wither').trim() : sel.value;
+  return {mode:"spawner",entity:ent,count:s_count.value,
+    spawn_count:s_spawn_count.value,spawn_range:s_spawn_range.value,
+    max_nearby:s_max_nearby.value,req_range:s_req_range.value,
+    min_delay:s_min_delay.value,max_delay:s_max_delay.value,delay:s_delay.value,
+    scale:s_scale.value,box_name:s_box_name.value,box_lore:s_box_lore.value,
+    ench:s_ench.value,version:v};
+}
 
 // 前端日志上报
 function flog(msg){
@@ -607,6 +656,14 @@ function loadModel(m){
     document.getElementById('v_effects').innerHTML="";
     (m.effects||[]).forEach(e=>addEffect(e));
     v_cells.innerHTML=""; (m.trades||[]).forEach(t=>addTrade(t));
+  } else if(m.mode==="spawner"){
+    setSpawnerEntity(m.entity||"minecraft:wither");
+    s_count.value=m.count||64; s_spawn_count.value=m.spawn_count||100;
+    s_spawn_range.value=m.spawn_range||10; s_max_nearby.value=m.max_nearby||10000;
+    s_req_range.value=m.req_range||100; s_min_delay.value=m.min_delay||1;
+    s_max_delay.value=m.max_delay||20; s_delay.value=m.delay||2;
+    s_scale.value=m.scale||""; s_box_name.value=m.box_name||""; s_box_lore.value=m.box_lore||"";
+    s_ench.value=m.ench||"";
   }
   show("已载入："+m.mode,"ok");
 }
@@ -764,6 +821,19 @@ function setBucket(v){
     sel.appendChild(opt);
   }
   sel.value=v;
+}
+
+// ===== 刷怪笼 =====
+function onSpawnerEntityChange(){
+  const sel=document.getElementById('s_entity');
+  document.getElementById('s_entity_custom').style.display = (sel.value==='__custom__')?'':'none';
+}
+function setSpawnerEntity(v){
+  const sel=document.getElementById('s_entity');
+  let opt=[...sel.options].find(o=>o.value===v);
+  if(!opt){ opt=document.createElement('option'); opt.value=v; opt.textContent=v; sel.appendChild(opt); }
+  sel.value=v;
+  document.getElementById('s_entity_custom').style.display='none';
 }
 
 // ===== 实体类型 =====

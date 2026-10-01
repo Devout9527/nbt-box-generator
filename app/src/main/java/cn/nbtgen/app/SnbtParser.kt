@@ -127,7 +127,7 @@ object ModelParser {
         return when {
             name == "minecraft:moving_block" -> parseSingleMovingBlock(root)
             name.contains("bucket") -> parseVillager(root)
-            name == "minecraft:mob_spawner" -> throw IllegalArgumentException("刷怪笼物品暂不支持导入编辑")
+            name == "minecraft:mob_spawner" -> parseSpawner(root)
             name == "minecraft:chest" -> {
                 val tag = asMap(root["tag"])
                 val items = asList(tag["Items"])
@@ -317,6 +317,26 @@ object ModelParser {
             .put("ench", ep.joinToString(","))
             .put("iname", disp["Name"]?.toString() ?: "")
             .put("lore", asList(disp["Lore"]).joinToString("\n") { it.toString() })
+    }
+
+    private fun parseSpawner(root: Map<String, Any>): JSONObject {
+        val tag = asMap(root["tag"])
+        val disp = asMap(tag["display"])
+        val scale = tag["DisplayEntityScale"]
+        return JSONObject()
+            .put("mode", "spawner")
+            .put("entity", tag["EntityIdentifier"]?.toString() ?: "minecraft:wither")
+            .put("count", numInt(root["Count"], 64))
+            .put("spawn_count", numInt(tag["SpawnCount"], 100))
+            .put("spawn_range", numInt(tag["SpawnRange"], 10))
+            .put("max_nearby", numInt(tag["MaxNearbyEntities"], 10000))
+            .put("req_range", numInt(tag["RequiredPlayerRange"], 100))
+            .put("min_delay", numInt(tag["MinSpawnDelay"], 1))
+            .put("max_delay", numInt(tag["MaxSpawnDelay"], 20))
+            .put("delay", numInt(tag["Delay"], 2))
+            .put("scale", scale?.toString() ?: "")
+            .put("box_name", disp["Name"]?.toString() ?: "")
+            .put("box_lore", asList(disp["Lore"]).joinToString("\n") { it.toString() })
     }
 
     private fun parseVillager(root: Map<String, Any>): JSONObject {
